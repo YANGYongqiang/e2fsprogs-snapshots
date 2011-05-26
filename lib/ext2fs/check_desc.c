@@ -68,6 +68,19 @@ errcode_t ext2fs_check_desc(ext2_filsys fs)
 		}
 		ext2fs_mark_block_bitmap(bmap, blk);
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		/*
+		 * Check to make sure the exclude bitmap for group is sane
+		 */
+		blk = fs->group_desc[i].bg_exclude_bitmap;
+		if (blk < first_block || blk > last_block ||
+		    ext2fs_test_block_bitmap(bmap, blk)) {
+			retval = EXT2_ET_GDESC_BAD_BLOCK_MAP;
+			goto errout;
+		}
+		ext2fs_mark_block_bitmap(bmap, blk);
+#endif
+
 		/*
 		 * Check to make sure the inode bitmap for group is sane
 		 */

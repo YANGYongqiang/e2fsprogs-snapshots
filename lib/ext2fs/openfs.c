@@ -347,6 +347,9 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 		for (i = 0, gd = fs->group_desc; i < fs->group_desc_count;
 		     i++, gd++) {
 			gd->bg_flags &= ~EXT2_BG_BLOCK_UNINIT;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			gd->bg_flags &= ~EXT2_BG_EXCLUDE_UNINIT;
+#endif
 			gd->bg_flags &= ~EXT2_BG_INODE_UNINIT;
 			gd->bg_itable_unused = 0;
 		}

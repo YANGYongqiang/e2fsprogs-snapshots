@@ -132,6 +132,9 @@ errcode_t online_resize_fs(ext2_filsys fs, const char *mtpt,
 
 		input.group = i;
 		input.block_bitmap = new_fs->group_desc[i].bg_block_bitmap;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		input.exclude_bitmap = new_fs->group_desc[i].bg_exclude_bitmap;
+#endif
 		input.inode_bitmap = new_fs->group_desc[i].bg_inode_bitmap;
 		input.inode_table = new_fs->group_desc[i].bg_inode_table;
 		input.blocks_count = sb->s_blocks_per_group;

@@ -95,6 +95,13 @@ static void open_filesystem(char *device, int open_flags, blk_t superblock,
 			com_err(device, retval, "while reading inode bitmap");
 			goto errout;
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		retval = ext2fs_read_exclude_bitmap(current_fs);
+		if (retval) {
+			com_err(device, retval, "while reading exclude bitmap");
+			goto errout;
+		}
+#endif
 		retval = ext2fs_read_block_bitmap(current_fs);
 		if (retval) {
 			com_err(device, retval, "while reading block bitmap");
@@ -346,12 +353,18 @@ void do_show_super_stats(int argc, char *argv[])
 	gdp = &current_fs->group_desc[0];
 	for (i = 0; i < current_fs->group_desc_count; i++, gdp++) {
 		fprintf(out, " Group %2d: block bitmap at %u, "
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			"exlcude bitmao at %u, "
+#endif
 		        "inode bitmap at %u, "
 		        "inode table at %u\n"
 		        "           %d free %s, "
 		        "%d free %s, "
 		        "%d used %s%s",
 		        i, gdp->bg_block_bitmap,
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		        gdp->bg_exclude_bitmap,
+#endif
 		        gdp->bg_inode_bitmap, gdp->bg_inode_table,
 		        gdp->bg_free_blocks_count,
 		        gdp->bg_free_blocks_count != 1 ? "blocks" : "block",
@@ -367,6 +380,10 @@ void do_show_super_stats(int argc, char *argv[])
 		first = 1;
 		print_bg_opts(gdp, EXT2_BG_INODE_UNINIT, "Inode not init",
 			      &first, out);
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		print_bg_opts(gdp, EXT2_BG_EXCLUDE_UNINIT, "Inode not init",
+			      &first, out);
+#endif
 		print_bg_opts(gdp, EXT2_BG_BLOCK_UNINIT, "Block not init",
 			      &first, out);
 		if (gdt_csum) {
@@ -1041,6 +1058,65 @@ void do_testb(int argc, char *argv[])
 		block++;
 	}
 }
+
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+void do_freee(int argc, char *argv[])
+{
+	blk_t block;
+	blk_t count = 1;
+
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	if (check_fs_read_write(argv[0]))
+		return;
+	while (count-- > 0) {
+		if (!ext2fs_test_exclude_bitmap(current_fs->exclude_map,block))
+			com_err(argv[0], 0, "Warning: block %u already "
+				"non-excluded",
+				block);
+		ext2fs_unmark_exclude_bitmap(current_fs->exclude_map,block);
+		block++;
+	}
+	ext2fs_mark_eb_dirty(current_fs);
+}
+
+void do_sete(int argc, char *argv[])
+{
+	blk_t block;
+	blk_t count = 1;
+
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	if (check_fs_read_write(argv[0]))
+		return;
+	while (count-- > 0) {
+		if (ext2fs_test_exclude_bitmap(current_fs->exclude_map,block))
+			com_err(argv[0], 0, "Warning: block %u already excluded",
+				block);
+		ext2fs_mark_exclude_bitmap(current_fs->exclude_map,block);
+		block++;
+	}
+	ext2fs_mark_eb_dirty(current_fs);
+}
+
+void do_teste(int argc, char *argv[])
+{
+	blk_t block;
+	blk_t count = 1;
+
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	while (count-- > 0) {
+		if (ext2fs_test_exclude_bitmap(current_fs->exclude_map,block))
+			printf("Block %u marked excluded\n", block);
+		else
+			printf("Block %u not excluded\n", block);
+		block++;
+	}
+}
+
+
+#endif
 
 static void modify_u8(char *com, const char *prompt,
 		      const char *format, __u8 *val)

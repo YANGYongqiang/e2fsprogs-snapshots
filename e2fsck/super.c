@@ -621,10 +621,12 @@ void check_snapshots(e2fsck_t ctx)
 			ctx->options &= ~E2F_OPT_FIX_SNAPSHOT;
 			/* clear all snapshot inodes (in pass1) */
 			ctx->flags |= E2F_FLAG_CLEAR_SNAPSHOTS;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
 			if (sb->s_feature_compat &
 					EXT2_FEATURE_COMPAT_EXCLUDE_INODE)
 				/* and reset exclude bitmap */
 				ctx->flags |= E2F_FLAG_EXCLUDE_INODE;
+#endif
 			return;
 		}
 	}
@@ -907,6 +909,18 @@ void check_super_block(e2fsck_t ctx)
 			ctx->invalid_block_bitmap_flag[i]++;
 			ctx->invalid_bitmaps++;
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if ((gd->bg_exclude_bitmap < first_block) ||
+		    (gd->bg_exclude_bitmap > last_block)) {
+			pctx.blk = gd->bg_exclude_bitmap;
+			if (fix_problem(ctx, PR_0_BB_NOT_GROUP, &pctx))
+				gd->bg_exclude_bitmap = 0;
+		}
+		if (gd->bg_exclude_bitmap == 0) {
+			ctx->invalid_exclude_bitmap_flag[i]++;
+			ctx->invalid_bitmaps++;
+		}
+#endif
 		if ((gd->bg_inode_bitmap < first_block) ||
 		    (gd->bg_inode_bitmap > last_block)) {
 			pctx.blk = gd->bg_inode_bitmap;
@@ -940,6 +954,9 @@ void check_super_block(e2fsck_t ctx)
 		if (!ext2fs_group_desc_csum_verify(fs, i)) {
 			if (fix_problem(ctx, PR_0_GDT_CSUM, &pctx)) {
 				gd->bg_flags &=	~(EXT2_BG_BLOCK_UNINIT |
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+				                  EXT2_BG_EXCLUDE_UNINIT |
+#endif
 				                  EXT2_BG_INODE_UNINIT);
 				gd->bg_itable_unused = 0;
 				should_be = 1;
@@ -948,10 +965,14 @@ void check_super_block(e2fsck_t ctx)
 		}
 
 		if (!csum_flag &&
-		    (gd->bg_flags &(EXT2_BG_BLOCK_UNINIT|EXT2_BG_INODE_UNINIT)||
+		    (gd->bg_flags &(EXT2_BG_BLOCK_UNINIT|EXT2_BG_INODE_UNINIT|
+		     		    EXT2_BG_EXCLUDE_UNINIT)||
 		     gd->bg_itable_unused != 0)){
 			if (fix_problem(ctx, PR_0_GDT_UNINIT, &pctx)) {
 				gd->bg_flags &= ~(EXT2_BG_BLOCK_UNINIT |
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+				                  EXT2_BG_EXCLUDE_UNINIT |
+#endif
 						  EXT2_BG_INODE_UNINIT);
 				gd->bg_itable_unused = 0;
 				should_be = 1;

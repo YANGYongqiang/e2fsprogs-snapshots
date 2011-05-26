@@ -34,8 +34,10 @@
 #define ext2fs_set_block_bitmap_range2 ext2fs_set_block_bitmap_range
 #define ext2fs_block_bitmap_loc(fs, group) \
 	fs->group_desc[group].bg_block_bitmap
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 #define ext2fs_exclude_bitmap_loc(fs, group) \
 	fs->group_desc[group].bg_exclude_bitmap
+#endif
 #define ext2fs_inode_bitmap_loc(fs, group) \
 	fs->group_desc[group].bg_inode_bitmap
 #define ext2fs_bg_flags_test(fs, group, bg_flag) \
@@ -66,6 +68,9 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 	int		csum_flag = 0;
 	blk64_t		blk;
 	blk64_t		blk_itr = fs->super->s_first_data_block;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	blk64_t		exclude_itr = fs->super->s_first_data_block;
+#endif
 	ext2_ino_t	ino_itr = 1;
 
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
@@ -99,7 +104,7 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 					     &exclude_buf);
 		if (retval)
 			return retval;
-		memset(exclude_buf, 0xff, fs->blocksize);
+		memset(exclude_buf, 0x0, fs->blocksize);
 	}
 #endif
 	if (do_inode) {
@@ -113,39 +118,19 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 	}
 
 	for (i = 0; i < fs->group_desc_count; i++) {
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-		if (!do_block && !do_exclude)
-#else
 		if (!do_block)
-#endif
 			goto skip_block_bitmap;
 
 		if (csum_flag && ext2fs_bg_flags_test(fs, i, EXT2_BG_BLOCK_UNINIT)
 		    )
 			goto skip_this_block_bitmap;
 
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-		if (do_block)
-			retval = ext2fs_get_block_bitmap_range2(fs->block_map,
-					blk_itr, block_nbytes << 3, block_buf);
-		if (retval)
-			return retval;
-
-		if (do_exclude)
-			retval = ext2fs_get_block_bitmap_range2(fs->exclude_map,
-					blk_itr, block_nbytes << 3, exclude_buf);
-#else
 		retval = ext2fs_get_block_bitmap_range2(fs->block_map,
 				blk_itr, block_nbytes << 3, block_buf);
-#endif
 		if (retval)
 			return retval;
 
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-		if (do_block && i == fs->group_desc_count - 1) {
-#else
 		if (i == fs->group_desc_count - 1) {
-#endif
 			/* Force bitmap padding for the last group */
 			nbits = ((ext2fs_blocks_count(fs->super)
 				  - (__u64) fs->super->s_first_data_block)
@@ -155,29 +140,40 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 					ext2fs_set_bit(j, block_buf);
 		}
 		blk = ext2fs_block_bitmap_loc(fs, i);
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-		if (do_block && blk) {
-#else
 		if (blk) {
-#endif
 			retval = io_channel_write_blk64(fs->io, blk, 1,
 							block_buf);
 			if (retval)
 				return EXT2_ET_BLOCK_BITMAP_WRITE;
 		}
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-		blk = ext2fs_exclude_bitmap_loc(fs, i);
-		if (do_exclude && blk) {
-			retval = io_channel_write_blk64(fs->io, blk, 1,
-						      exclude_buf);
-			if (retval)
-				return EXT2_ET_BLOCK_BITMAP_WRITE;
-		}
-#endif
 	skip_this_block_bitmap:
 		blk_itr += block_nbytes << 3;
 	skip_block_bitmap:
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (!do_exclude)
+			goto skip_exclude_bitmap;
 
+		if (csum_flag && ext2fs_bg_flags_test(fs, i, EXT2_BG_EXCLUDE_UNINIT)
+		    )
+			goto skip_this_exclude_bitmap;
+
+		retval = ext2fs_get_exclude_bitmap_range(fs->exclude_map,
+				exclude_itr, block_nbytes << 3, exclude_buf);
+		if (retval)
+			return retval;
+
+		blk = ext2fs_exclude_bitmap_loc(fs, i);
+		if (blk) {
+			retval = io_channel_write_blk64(fs->io, blk, 1,
+						      exclude_buf);
+			if (retval)
+				return EXT2_ET_EXCLUDE_BITMAP_WRITE;
+		}
+
+	skip_this_exclude_bitmap:
+		exclude_itr += block_nbytes << 3;
+	skip_exclude_bitmap:
+#endif
 		if (!do_inode)
 			continue;
 
@@ -205,6 +201,12 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		fs->flags &= ~EXT2_FLAG_BB_DIRTY;
 		ext2fs_free_mem(&block_buf);
 	}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	if (do_exclude) {
+		fs->flags &= ~EXT2_FLAG_EB_DIRTY;
+		ext2fs_free_mem(&exclude_buf);
+	}
+#endif
 	if (do_inode) {
 		fs->flags &= ~EXT2_FLAG_IB_DIRTY;
 		ext2fs_free_mem(&inode_buf);
@@ -276,10 +278,10 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 	}
 	if (do_exclude) {
 		if (fs->exclude_map)
-			ext2fs_free_block_bitmap(fs->exclude_map);
+			ext2fs_free_exclude_bitmap(fs->exclude_map);
 		strcpy(buf, "exclude bitmap for ");
 		strcat(buf, fs->device_name);
-		retval = ext2fs_allocate_block_bitmap(fs, buf, &fs->exclude_map);
+		retval = ext2fs_allocate_exclude_bitmap(fs, buf, &fs->exclude_map);
 		if (retval)
 			goto cleanup;
 		if (do_image)
@@ -287,7 +289,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		else
 			retval = ext2fs_get_memalign((unsigned) block_nbytes,
 						     fs->blocksize,
-						     &exclude_bitmap);	
+						     &exclude_bitmap);
 		if (retval)
 			goto cleanup;
 	}
@@ -338,7 +340,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		while (block_nbytes > 0) {
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 			if (do_exclude) {
-				retval = EXT2_ET_BLOCK_BITMAP_READ;
+				retval = EXT2_ET_EXCLUDE_BITMAP_READ;
 				goto cleanup;
 			}
 
@@ -387,20 +389,21 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		if (exclude_bitmap) {
 			blk = ext2fs_exclude_bitmap_loc(fs, i);
 			if (csum_flag &&
-			    ext2fs_bg_flags_test(fs, i, EXT2_BG_BLOCK_UNINIT) &&
+			    ext2fs_bg_flags_test(fs, i, EXT2_BG_EXCLUDE_UNINIT) &&
 			    ext2fs_group_desc_csum_verify(fs, i))
 				blk = 0;
 			if (blk) {
 				retval = io_channel_read_blk64(fs->io, blk,
 					     -block_nbytes, exclude_bitmap);
 				if (retval) {
-					retval = EXT2_ET_BLOCK_BITMAP_READ;
+					retval = EXT2_ET_EXCLUDE_BITMAP_READ;
 					goto cleanup;
 				}
-			} else
+			} else {
 				memset(exclude_bitmap, 0, block_nbytes);
+			}
 			cnt = block_nbytes << 3;
-			retval = ext2fs_set_block_bitmap_range2(fs->exclude_map,
+			retval = ext2fs_set_exclude_bitmap_range(fs->exclude_map,
 					       blk_itr, cnt, exclude_bitmap);
 			if (retval)
 				goto cleanup;
@@ -538,7 +541,7 @@ errcode_t ext2fs_write_bitmaps(ext2_filsys fs)
 	int do_inode = fs->inode_map && ext2fs_test_ib_dirty(fs);
 	int do_block = fs->block_map && ext2fs_test_bb_dirty(fs);
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-	int do_exclude = fs->exclude_map && ext2fs_test_exclude_dirty(fs);
+	int do_exclude = fs->exclude_map && ext2fs_test_eb_dirty(fs);
 #endif
 
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP

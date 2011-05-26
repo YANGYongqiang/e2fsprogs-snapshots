@@ -364,7 +364,13 @@ ipg_retry:
 	retval = ext2fs_allocate_block_bitmap(fs, buf, &fs->block_map);
 	if (retval)
 		goto cleanup;
-
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	strcpy(buf, "exclude bitmap for ");
+	strcat(buf, fs->device_name);
+	retval = ext2fs_allocate_exclude_bitmap(fs, buf, &fs->exclude_map);
+	if (retval)
+		goto cleanup;
+#endif
 	strcpy(buf, "inode bitmap for ");
 	strcat(buf, fs->device_name);
 	retval = ext2fs_allocate_inode_bitmap(fs, buf, &fs->inode_map);
@@ -404,6 +410,9 @@ ipg_retry:
 				fs->group_desc[i].bg_flags |=
 					EXT2_BG_BLOCK_UNINIT;
 			fs->group_desc[i].bg_flags |= EXT2_BG_INODE_UNINIT;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			fs->group_desc[i].bg_flags |= EXT2_BG_EXCLUDE_UNINIT;
+#endif
 			numblocks = super->s_inodes_per_group;
 			if (i == 0)
 				numblocks -= super->s_first_ino;
@@ -430,6 +439,9 @@ ipg_retry:
 
 	ext2fs_mark_super_dirty(fs);
 	ext2fs_mark_bb_dirty(fs);
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	ext2fs_mark_eb_dirty(fs);
+#endif
 	ext2fs_mark_ib_dirty(fs);
 
 	io_channel_set_blksize(fs->io, fs->blocksize);

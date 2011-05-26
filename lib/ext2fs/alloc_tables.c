@@ -146,6 +146,36 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 		}
 	}
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	if (flexbg_size) {
+		blk_t prev_block = 0;
+		if (group && fs->group_desc[group-1].bg_exclude_bitmap)
+			prev_block = fs->group_desc[group-1].bg_exclude_bitmap;
+		start_blk = flexbg_offset(fs, group, prev_block, bmap,
+						 0, rem_grps, 1);
+		last_blk = ext2fs_group_last_block(fs, last_grp);
+	}
+
+	if (!fs->group_desc[group].bg_exclude_bitmap) {
+		retval = ext2fs_get_free_blocks(fs, start_blk, last_blk,
+						1, bmap, &new_blk);
+		if (retval == EXT2_ET_BLOCK_ALLOC_FAIL)
+			retval = ext2fs_get_free_blocks(fs, group_blk,
+					last_blk, 1, bmap, &new_blk);
+		if (retval)
+			return retval;
+		ext2fs_mark_block_bitmap(bmap, new_blk);
+		fs->group_desc[group].bg_exclude_bitmap = new_blk;
+		if (flexbg_size) {
+			dgrp_t gr = ext2fs_group_of_blk(fs, new_blk);
+			fs->group_desc[gr].bg_free_blocks_count--;
+			fs->super->s_free_blocks_count--;
+			fs->group_desc[gr].bg_flags &= ~EXT2_BG_BLOCK_UNINIT;
+			ext2fs_group_desc_csum_set(fs, gr);
+		}
+	}
+#endif
+
 	if (flexbg_size) {
 		blk_t prev_block = 0;
 		if (group && fs->group_desc[group-1].bg_inode_bitmap)

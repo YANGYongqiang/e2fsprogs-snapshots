@@ -32,6 +32,14 @@ void ext2fs_free_inode_bitmap(ext2fs_inode_bitmap bitmap)
 	ext2fs_free_generic_bitmap(bitmap);
 }
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+void ext2fs_free_exclude_bitmap(ext2fs_exclude_bitmap bitmap)
+{
+	ext2fs_free_generic_bitmap(bitmap);
+}
+
+#endif
+
 void ext2fs_free_block_bitmap(ext2fs_block_bitmap bitmap)
 {
 	ext2fs_free_generic_bitmap(bitmap);
@@ -67,6 +75,27 @@ errcode_t ext2fs_allocate_inode_bitmap(ext2_filsys fs,
 					   descr, 0, ret));
 }
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+errcode_t ext2fs_allocate_exclude_bitmap(ext2_filsys fs,
+				       const char *descr,
+				       ext2fs_exclude_bitmap *ret)
+{
+	__u32		start, end, real_end;
+
+	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
+
+	fs->write_bitmaps = ext2fs_write_bitmaps;
+
+	start = fs->super->s_first_data_block;
+	end = fs->super->s_blocks_count-1;
+	real_end = (EXT2_BLOCKS_PER_GROUP(fs->super)
+		    * fs->group_desc_count)-1 + start;
+
+	return (ext2fs_make_generic_bitmap(EXT2_ET_MAGIC_EXCLUDE_BITMAP, fs,
+					   start, end, real_end,
+					   descr, 0, ret));
+}
+#endif
 errcode_t ext2fs_allocate_block_bitmap(ext2_filsys fs,
 				       const char *descr,
 				       ext2fs_block_bitmap *ret)
@@ -163,6 +192,26 @@ errcode_t ext2fs_get_inode_bitmap_range(ext2fs_inode_bitmap bmap,
 						EXT2_ET_MAGIC_INODE_BITMAP,
 						start, num, out));
 }
+
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+errcode_t ext2fs_set_exclude_bitmap_range(ext2fs_exclude_bitmap bmap,
+					blk_t start, unsigned int num,
+					void *in)
+{
+	return (ext2fs_set_generic_bitmap_range(bmap,
+						EXT2_ET_MAGIC_EXCLUDE_BITMAP,
+						start, num, in));
+}
+
+errcode_t ext2fs_get_exclude_bitmap_range(ext2fs_exclude_bitmap bmap,
+					blk_t start, unsigned int num,
+					void *out)
+{
+	return (ext2fs_get_generic_bitmap_range(bmap,
+						EXT2_ET_MAGIC_EXCLUDE_BITMAP,
+						start, num, out));
+}
+#endif
 
 errcode_t ext2fs_set_block_bitmap_range(ext2fs_block_bitmap bmap,
 					blk_t start, unsigned int num,

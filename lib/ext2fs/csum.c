@@ -199,8 +199,14 @@ int main(int argc, char **argv)
 
 	for (i=0; i < fs->group_desc_count; i++) {
 		fs->group_desc[i].bg_block_bitmap = 124;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		fs->group_desc[i].bg_exlcude_bitmap = 125;
+		fs->group_desc[i].bg_inode_bitmap = 126;
+		fs->group_desc[i].bg_inode_table = 127;
+#else
 		fs->group_desc[i].bg_inode_bitmap = 125;
 		fs->group_desc[i].bg_inode_table = 126;
+#endif
 		fs->group_desc[i].bg_free_blocks_count = 31119;
 		fs->group_desc[i].bg_free_inodes_count = 15701;
 		fs->group_desc[i].bg_used_dirs_count = 2;

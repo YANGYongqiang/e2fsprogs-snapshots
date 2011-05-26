@@ -419,4 +419,24 @@ ec	EXT2_ET_IO_CHANNEL_NO_SUPPORT_64,
 ec	EXT2_NO_MTAB_FILE,
 	"Can't check if filesystem is mounted due to missing mtab file"
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+ec	EXT2_ET_MAGIC_EXCLUDE_BITMAP,
+	"Wrong magic number for exclude_bitmap structure"
+
+ec	EXT2_ET_EXCLUDE_BITMAP_WRITE,
+	"Can't write an exclude bitmap"
+
+ec	EXT2_ET_EXCLUDE_BITMAP_READ,
+	"Can't read an exclude bitmap"
+
+ec	EXT2_ET_BAD_EXCLUDE_TEST,
+	"Illegal block number passed to ext2fs_test_exclude_bitmap"
+
+ec	EXT2_ET_BAD_EXCLUDE_MARK,
+	"Illegal block number passed to ext2fs_mark_exclude_bitmap"
+
+ec	EXT2_ET_BAD_EXCLUDE_UNMARK,
+	"Illegal block number passed to ext2fs_unmark_exclude_bitmap"
+
+
 	end

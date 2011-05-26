@@ -296,7 +296,7 @@ static int release_blocks_proc(ext2_filsys fs, blk64_t *blocknr,
 	return 0;
 }
 
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
+#ifdef EXT2FS_SNAPSHOT_CLEANUP
 /*
  * Remove a special inode from the filesystem:
  * - resize inode, @nlink = 0
@@ -503,7 +503,7 @@ static void request_fsck_afterwards(ext2_filsys fs)
 		printf(_("(and reboot afterwards!)\n"));
 }
 
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
+#ifdef EXT2FS_SNAPSHOT_CLEANUP
 static int verify_clean_fs(ext2_filsys fs, int compat, unsigned int mask,
 		int on)
 {
@@ -549,7 +549,7 @@ static void update_feature_set(ext2_filsys fs, char *features)
 				 !((&sb->s_feature_compat)[(type)] & (mask)))
 #define FEATURE_CHANGED(type, mask) ((mask) & \
 		     (old_features[(type)] ^ (&sb->s_feature_compat)[(type)]))
-#ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
+#ifdef EXT2FS_SNAPSHOT_CLEANUP
 #define FEATURE_ON_SAFE(compat, mask) \
 	(FEATURE_ON(compat, mask) && verify_clean_fs(fs, compat, mask, 1))
 #define FEATURE_OFF_SAFE(compat, mask) \
@@ -657,6 +657,7 @@ static void update_feature_set(ext2_filsys fs, char *features)
 	if (FEATURE_OFF_SAFE(E2P_FEATURE_RO_INCOMPAT,
 				EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT)) {
 		discard_snapshot_list(fs);
+#ifdef EXT2FS_SNAPSHOT_EXCLDUE_INODE
 		if (sb->s_feature_compat & 
 				EXT2_FEATURE_COMPAT_EXCLUDE_INODE) {
 			/* reset exclude bitmap blocks */
@@ -665,6 +666,7 @@ static void update_feature_set(ext2_filsys fs, char *features)
 				sb->s_feature_compat &=
 					~EXT2_FEATURE_COMPAT_EXCLUDE_INODE;
 		}
+#endif
 	}
 
 #endif
@@ -691,6 +693,7 @@ static void update_feature_set(ext2_filsys fs, char *features)
 				"the journal with '-J big' before setting the "
 				"'has_snapshot' flag.\n"));
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
 		/* allocate/reset exclude bitmap blocks */
 		retval = ext2fs_create_exclude_inode(fs, EXCLUDE_CREATE);
 		if (!retval)
@@ -702,6 +705,7 @@ static void update_feature_set(ext2_filsys fs, char *features)
 				"For best operation of Next3, try re-creating "
 				"the exclude inode before setting the "
 				"'has_snapshot' flag.\n"));
+#endif
 	}
 
 #endif
@@ -1359,6 +1363,10 @@ static int ext2fs_is_meta_block(ext2_filsys fs, blk_t blk)
 	group = ext2fs_group_of_blk(fs, blk);
 	if (fs->group_desc[group].bg_block_bitmap == blk)
 		return 1;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	if (fs->group_desc[group].bg_exclude_bitmap == blk)
+		return 1;
+#endif
 	if (fs->group_desc[group].bg_inode_bitmap == blk)
 		return 1;
 	return 0;
@@ -1575,6 +1583,16 @@ static int group_desc_scan_and_fix(ext2_filsys fs, ext2fs_block_bitmap bmap)
 				continue;
 			fs->group_desc[i].bg_block_bitmap = new_blk;
 		}
+
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		blk = fs->group_desc[i].bg_exclude_bitmap;
+		if (ext2fs_test_block_bitmap(bmap, blk)) {
+			new_blk = translate_block(blk);
+			if (!new_blk)
+				continue;
+			fs->group_desc[i].bg_exclude_bitmap = new_blk;
+		}
+#endif
 
 		blk = fs->group_desc[i].bg_inode_bitmap;
 		if (ext2fs_test_block_bitmap(bmap, blk)) {

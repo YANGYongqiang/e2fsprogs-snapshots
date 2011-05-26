@@ -102,7 +102,11 @@ static void determine_fs_stride(ext2_filsys fs)
 	unsigned int	group;
 	unsigned long long sum;
 	unsigned int	has_sb, prev_has_sb, num;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	int		i_stride, b_stride, e_stride;
+#else
 	int		i_stride, b_stride;
+#endif
 
 	if (fs->stride)
 		return;
@@ -114,10 +118,19 @@ static void determine_fs_stride(ext2_filsys fs)
 		b_stride = fs->group_desc[group].bg_block_bitmap -
 			fs->group_desc[group-1].bg_block_bitmap -
 			fs->super->s_blocks_per_group;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		e_stride = fs->group_desc[group].bg_exclude_bitmap -
+			fs->group_desc[group-1].bg_exclude_bitmap -
+			fs->super->s_blocks_per_group;
+#endif
 		i_stride = fs->group_desc[group].bg_inode_bitmap -
 			fs->group_desc[group-1].bg_inode_bitmap -
 			fs->super->s_blocks_per_group;
 		if (b_stride != i_stride ||
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		    b_stride != e_stride ||
+		    e_stride != i_stride ||
+#endif
 		    b_stride < 0)
 			goto next;
 

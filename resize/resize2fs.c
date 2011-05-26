@@ -58,10 +58,16 @@ static errcode_t fix_sb_journal_backup(ext2_filsys fs);
  * Some helper CPP macros
  */
 #define FS_BLOCK_BM(fs, i) ((fs)->group_desc[(i)].bg_block_bitmap)
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+#define FS_EXCLUDE_BM(fs, i) ((fs)->group_desc[(i)].bg_exclude_bitmap)
+#endif
 #define FS_INODE_BM(fs, i) ((fs)->group_desc[(i)].bg_inode_bitmap)
 #define FS_INODE_TB(fs, i) ((fs)->group_desc[(i)].bg_inode_table)
 
 #define IS_BLOCK_BM(fs, i, blk) ((blk) == FS_BLOCK_BM((fs),(i)))
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+#define IS_EXCLUDE_BM(fs, i, blk) ((blk) == FS_EXCLUDE_BM((fs),(i)))
+#endif
 #define IS_INODE_BM(fs, i, blk) ((blk) == FS_INODE_BM((fs),(i)))
 
 #define IS_INODE_TB(fs, i, blk) (((blk) >= FS_INODE_TB((fs), (i))) && \
@@ -232,6 +238,9 @@ static void fix_uninit_block_bitmaps(ext2_filsys fs)
 			     (blk < old_desc_blk + old_desc_blocks)) ||
 			    (new_desc_blk && (blk == new_desc_blk)) ||
 			    (blk == fs->group_desc[g].bg_block_bitmap) ||
+#ifdef E2FS_SNAPHOT_EXCLUDE_BITMAP
+			    (blk == fs->group_desc[g].bg_exclude_bitmap) ||
+#endif
 			    (blk == fs->group_desc[g].bg_inode_bitmap) ||
 			    (blk >= fs->group_desc[g].bg_inode_table &&
 			     (blk < fs->group_desc[g].bg_inode_table
@@ -272,7 +281,14 @@ static void free_gdp_blocks(ext2_filsys fs,
 		ext2fs_mark_block_bitmap(reserve_blocks,
 					 gdp->bg_block_bitmap);
 	}
-
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	if (gdp->bg_exclude_bitmap &&
+	    (gdp->bg_exclude_bitmap < fs->super->s_blocks_count)) {
+		ext2fs_block_alloc_stats(fs, gdp->bg_exclude_bitmap, -1);
+		ext2fs_mark_block_bitmap(reserve_blocks,
+					 gdp->bg_exclude_bitmap);
+	}
+#endif
 	if (gdp->bg_inode_bitmap &&
 	    (gdp->bg_inode_bitmap < fs->super->s_blocks_count)) {
 		ext2fs_block_alloc_stats(fs, gdp->bg_inode_bitmap, -1);
@@ -720,7 +736,13 @@ static errcode_t mark_table_blocks(ext2_filsys fs,
 		 */
 		ext2fs_mark_block_bitmap(bmap,
 					 fs->group_desc[i].bg_block_bitmap);
-
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		/*
+		 * Mark block used for the exclude bitmap
+		 */
+		ext2fs_mark_block_bitmap(bmap,
+					 fs->group_desc[i].bg_exclude_bitmap);
+#endif
 		/*
 		 * Mark block used for the inode bitmap
 		 */
@@ -752,6 +774,11 @@ static void mark_fs_metablock(ext2_resize_t rfs,
 	if (IS_BLOCK_BM(fs, group, blk)) {
 		FS_BLOCK_BM(fs, group) = 0;
 		rfs->needed_blocks++;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	} else if (IS_EXCLUDE_BM(fs, group, blk)) {
+		FS_EXCLUDE_BM(fs, group) = 0;
+		rfs->needed_blocks++;
+#endif
 	} else if (IS_INODE_BM(fs, group, blk)) {
 		FS_INODE_BM(fs, group) = 0;
 		rfs->needed_blocks++;
@@ -908,6 +935,9 @@ static errcode_t blocks_to_move(ext2_resize_t rfs)
 
 		if (fs->group_desc[i].bg_inode_table &&
 		    fs->group_desc[i].bg_inode_bitmap &&
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		    fs->group_desc[i].bg_exclude_bitmap &&
+#endif
 		    fs->group_desc[i].bg_block_bitmap)
 			goto next_group;
 
@@ -918,6 +948,11 @@ static errcode_t blocks_to_move(ext2_resize_t rfs)
 		if (fs->group_desc[i].bg_block_bitmap)
 			ext2fs_mark_block_bitmap(rfs->reserve_blocks,
 				 fs->group_desc[i].bg_block_bitmap);
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (fs->group_desc[i].bg_exclude_bitmap)
+			ext2fs_mark_block_bitmap(rfs->reserve_blocks,
+				 fs->group_desc[i].bg_exclude_bitmap);
+#endif
 		if (fs->group_desc[i].bg_inode_bitmap)
 			ext2fs_mark_block_bitmap(rfs->reserve_blocks,
 				 fs->group_desc[i].bg_inode_bitmap);
@@ -967,6 +1002,16 @@ static errcode_t blocks_to_move(ext2_resize_t rfs)
 				ext2fs_mark_block_bitmap(rfs->move_blocks,
 							 blk);
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (FS_EXCLUDE_BM(old_fs, i) !=
+		    (blk = FS_EXCLUDE_BM(fs, i))) {
+			ext2fs_block_alloc_stats(fs, blk, +1);
+			if (ext2fs_test_block_bitmap(old_fs->block_map, blk) &&
+			    !ext2fs_test_block_bitmap(meta_bmap, blk))
+				ext2fs_mark_block_bitmap(rfs->move_blocks,
+							 blk);
+		}
+#endif
 		if (FS_INODE_BM(old_fs, i) !=
 		    (blk = FS_INODE_BM(fs, i))) {
 			ext2fs_block_alloc_stats(fs, blk, +1);
@@ -1819,6 +1864,9 @@ static errcode_t ext2fs_calculate_summary_stats(ext2_filsys fs)
 			 (blk < old_desc_blk + old_desc_blocks))) ||
 		       ((new_desc_blk && (blk == new_desc_blk))) ||
 		       (blk == fs->group_desc[group].bg_block_bitmap) ||
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		       (blk == fs->group_desc[group].bg_exclude_bitmap) ||
+#endif
 		       (blk == fs->group_desc[group].bg_inode_bitmap) ||
 		       ((blk >= fs->group_desc[group].bg_inode_table &&
 			 (blk < fs->group_desc[group].bg_inode_table

@@ -322,6 +322,9 @@ Set specific type user commands.
 		add_user_command (&ptr->type_commands,"inode","Pass to the inode table of the current group block",type_ext2_group_desc___inode);
 		add_user_command (&ptr->type_commands,"gocopy","Move to another backup copy of the group descriptor",type_ext2_group_desc___gocopy);
 		add_user_command (&ptr->type_commands,"blockbitmap","Show the block allocation bitmap of the current group block",type_ext2_group_desc___blockbitmap);
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		add_user_command (&ptr->type_commands,"excludebitmap","Show the snapshot exclude bitmap of the current group block",type_ext2_group_desc___blockbitmap);
+#endif
 		add_user_command (&ptr->type_commands,"inodebitmap","Show the inode allocation bitmap of the current group block",type_ext2_group_desc___inodebitmap);
 		add_user_command (&ptr->type_commands,"setactivecopy","Copies the current group descriptor to the main table",type_ext2_super_block___setactivecopy);
 	}
@@ -334,6 +337,17 @@ Set specific type user commands.
 		add_user_command (&ptr->type_commands,"allocate","Allocates the current block",type_ext2_block_bitmap___allocate);
 		add_user_command (&ptr->type_commands,"deallocate","Deallocates the current block",type_ext2_block_bitmap___deallocate);
 	}
+
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (strcmp ((ptr->name),"exlcude_bitmap")==0) {
+		add_user_command (&ptr->type_commands,"show","Displays the snapshot exclude bitmap",type_ext2_block_bitmap___show);
+		add_user_command (&ptr->type_commands,"entry","Moves to a specific bit",type_ext2_block_bitmap___entry);
+		add_user_command (&ptr->type_commands,"next","Moves to the next bit",type_ext2_block_bitmap___next);
+		add_user_command (&ptr->type_commands,"prev","Moves to the previous bit",type_ext2_block_bitmap___prev);
+		add_user_command (&ptr->type_commands,"exclude","Excludes the current block",type_ext2_block_bitmap___allocate);
+		add_user_command (&ptr->type_commands,"deexclude","Deexcludes the current block",type_ext2_block_bitmap___deallocate);
+	}
+#endif
 
 	if (strcmp ((ptr->name),"inode_bitmap")==0) {
 		add_user_command (&ptr->type_commands,"show","Displays the inode allocation bitmap",type_ext2_inode_bitmap___show);

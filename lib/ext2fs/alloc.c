@@ -59,6 +59,9 @@ static void check_block_uninit(ext2_filsys fs, ext2fs_block_bitmap map,
 		     (blk < old_desc_blk + old_desc_blocks)) ||
 		    (new_desc_blk && (blk == new_desc_blk)) ||
 		    (blk == fs->group_desc[group].bg_block_bitmap) ||
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		    (blk == fs->group_desc[group].bg_exclude_bitmap) ||
+#endif
 		    (blk == fs->group_desc[group].bg_inode_bitmap) ||
 		    (blk >= fs->group_desc[group].bg_inode_table &&
 		     (blk < fs->group_desc[group].bg_inode_table

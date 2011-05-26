@@ -108,6 +108,9 @@ typedef struct struct_ext2_filsys *ext2_filsys;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_generic_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_inode_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_block_bitmap;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+typedef struct ext2fs_struct_generic_bitmap *ext2fs_exclude_bitmap;
+#endif
 
 #define EXT2_FIRST_INODE(s)	EXT2_FIRST_INO(s)
 
@@ -183,7 +186,7 @@ typedef struct ext2_file *ext2_file_t;
 #define EXT2_FLAG_PRINT_PROGRESS	0x40000
 #define EXT2_FLAG_DIRECT_IO		0x80000
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-#define EXT2_FLAG_EXCLUDE_DIRTY		0x100000
+#define EXT2_FLAG_EB_DIRTY		0x100000
 #endif
 
 /*
@@ -216,7 +219,7 @@ struct struct_ext2_filsys {
 	ext2fs_inode_bitmap		inode_map;
 	ext2fs_block_bitmap		block_map;
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
-	ext2fs_block_bitmap		exclude_map;
+	ext2fs_exclude_bitmap		exclude_map;
 #endif
 	/* XXX FIXME-64: not 64-bit safe, but not used? */
 	errcode_t (*get_blocks)(ext2_filsys fs, ext2_ino_t ino, blk_t *blocks);
@@ -502,6 +505,9 @@ typedef struct ext2_icount *ext2_icount_t;
  */
 #define IMAGER_FLAG_INODEMAP	1
 #define IMAGER_FLAG_SPARSEWRITE	2
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+#define IMAGER_FLAG_EXCLUDEMAP	3
+#endif
 
 /*
  * For checking structure magic numbers...
@@ -1385,9 +1391,9 @@ _INLINE_ void ext2fs_mark_bb_dirty(ext2_filsys fs)
 /*
  * Mark the exclude bitmap as dirty
  */
-_INLINE_ void ext2fs_mark_exclude_dirty(ext2_filsys fs)
+_INLINE_ void ext2fs_mark_eb_dirty(ext2_filsys fs)
 {
-	fs->flags |= EXT2_FLAG_EXCLUDE_DIRTY | EXT2_FLAG_CHANGED;
+	fs->flags |= EXT2_FLAG_EB_DIRTY | EXT2_FLAG_CHANGED;
 }
 
 #endif
@@ -1411,9 +1417,9 @@ _INLINE_ int ext2fs_test_bb_dirty(ext2_filsys fs)
 /*
  * Check to see if a filesystem's exclude bitmap is dirty
  */
-_INLINE_ int ext2fs_test_exclude_dirty(ext2_filsys fs)
+_INLINE_ int ext2fs_test_eb_dirty(ext2_filsys fs)
 {
-	return (fs->flags & EXT2_FLAG_EXCLUDE_DIRTY);
+	return (fs->flags & EXT2_FLAG_EB_DIRTY);
 }
 
 #endif

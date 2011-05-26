@@ -58,6 +58,9 @@ static errcode_t check_magic(ext2fs_generic_bitmap bitmap)
 {
 	if (!bitmap || !((bitmap->magic == EXT2_ET_MAGIC_GENERIC_BITMAP) ||
 			 (bitmap->magic == EXT2_ET_MAGIC_INODE_BITMAP) ||
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			 (bitmap->magic == EXT2_ET_MAGIC_EXCLUDE_BITMAP) ||
+#endif
 			 (bitmap->magic == EXT2_ET_MAGIC_BLOCK_BITMAP)))
 		return EXT2_ET_MAGIC_GENERIC_BITMAP;
 	return 0;
@@ -89,6 +92,11 @@ errcode_t ext2fs_make_generic_bitmap(errcode_t magic, ext2_filsys fs,
 	case EXT2_ET_MAGIC_BLOCK_BITMAP:
 		bitmap->base_error_code = EXT2_ET_BAD_BLOCK_MARK;
 		break;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	case EXT2_ET_MAGIC_EXCLUDE_BITMAP:
+		bitmap->base_error_code = EXT2_ET_BAD_EXCLUDE_MARK;
+		break;
+#endif
 	default:
 		bitmap->base_error_code = EXT2_ET_BAD_GENERIC_MARK;
 	}
@@ -437,6 +445,22 @@ int ext2fs_test_block_bitmap_range(ext2fs_block_bitmap bitmap,
 						      bitmap, block, num);
 }
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+int ext2fs_test_exlucde_bitmap_range(ext2fs_exclude_bitmap bitmap,
+				   blk_t block, int num)
+{
+	EXT2_CHECK_MAGIC(bitmap, EXT2_ET_MAGIC_EXCLUDE_BITMAP);
+	if ((block < bitmap->start) || (block+num-1 > bitmap->real_end)) {
+		ext2fs_warn_bitmap(EXT2_ET_BAD_EXCLUDE_TEST,
+				   block, bitmap->description);
+		return 0;
+	}
+	return ext2fs_test_clear_generic_bitmap_range((ext2fs_generic_bitmap)
+						      bitmap, block, num);
+}
+
+#endif
+
 int ext2fs_test_inode_bitmap_range(ext2fs_inode_bitmap bitmap,
 				   ino_t inode, int num)
 {
@@ -478,3 +502,34 @@ void ext2fs_unmark_block_bitmap_range(ext2fs_block_bitmap bitmap,
 		ext2fs_fast_clear_bit(block + i - bitmap->start,
 				      bitmap->bitmap);
 }
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+
+void ext2fs_mark_exclude_bitmap_range(ext2fs_exclude_bitmap bitmap,
+				    blk_t block, int num)
+{
+	int	i;
+
+	if ((block < bitmap->start) || (block+num-1 > bitmap->end)) {
+		ext2fs_warn_bitmap(EXT2_ET_BAD_EXCLUDE_MARK, block,
+				   bitmap->description);
+		return;
+	}
+	for (i=0; i < num; i++)
+		ext2fs_fast_set_bit(block + i - bitmap->start, bitmap->bitmap);
+}
+
+void ext2fs_unmark_exclude_bitmap_range(ext2fs_exclude_bitmap bitmap,
+					       blk_t block, int num)
+{
+	int	i;
+
+	if ((block < bitmap->start) || (block+num-1 > bitmap->end)) {
+		ext2fs_warn_bitmap(EXT2_ET_BAD_EXCLUDE_UNMARK, block,
+				   bitmap->description);
+		return;
+	}
+	for (i=0; i < num; i++)
+		ext2fs_fast_clear_bit(block + i - bitmap->start,
+				      bitmap->bitmap);
+}
+#endif

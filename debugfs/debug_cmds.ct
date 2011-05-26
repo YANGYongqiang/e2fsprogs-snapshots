@@ -85,6 +85,17 @@ request do_setb, "Set a block's in-use flag",
 request do_testb, "Test a block's in-use flag",
 	testb;
 
+#ifdef EXT2FS_SNAPSHOT_EXLCUDE_BITMAP
+request do_freee, "Clear a block's exclude flag",
+	freee;
+
+request do_sete, "Set a block's exclude flag",
+	sete;
+
+request do_teste, "Test a block's exclude flag",
+	teste;
+#endif
+
 request do_modify_inode, "Modify an inode by structure",
 	modify_inode, mi;
 

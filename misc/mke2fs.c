@@ -853,6 +853,10 @@ static __u32 ok_features[3] = {
 #ifdef EXT2FS_SNAPSHOT_EXCLUDE_INODE
 		EXT2_FEATURE_COMPAT_EXCLUDE_INODE |
 #endif
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP |
+#endif
+
 		EXT2_FEATURE_COMPAT_RESIZE_INODE |
 		EXT2_FEATURE_COMPAT_DIR_INDEX |
 		EXT2_FEATURE_COMPAT_EXT_ATTR,
@@ -1295,8 +1299,13 @@ static void PRS(int argc, char *argv[])
 			/* 3. create exclude inode */
 			edit_feature("exclude_inode", &fs_param.s_feature_compat);
 #endif
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			/* 4. create exclude bitmap */
+			edit_feature("exclude_bitmap", &fs_param.s_feature_compat);
+#endif
+
 #ifdef EXT2FS_SNAPSHOT_HAS_SNAPSHOT
-			/* 4. enable snapshot support */
+			/* 5. enable snapshot support */
 			edit_feature("has_snapshot", &fs_param.s_feature_compat);
 #endif
 		}
@@ -2412,6 +2421,7 @@ no_journal:
 		if (!getenv("MKE2FS_SKIP_CHECK_MSG"))
 			print_check_message(fs);
 	}
+	printf("mkfs end\n");
 	val = ext2fs_close(fs);
 	remove_error_table(&et_ext2_error_table);
 	remove_error_table(&et_prof_error_table);

@@ -2186,6 +2186,12 @@ static char *describe_illegal_block(ext2_filsys fs, blk_t block)
 			sprintf(problem, "is the block bitmap of group %d", i);
 			break;
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (block == fs->group_desc[i].bg_exclude_bitmap) {
+			sprintf(problem, "is the exclude bitmap of group %d", i);
+			break;
+		}
+#endif
 		if (block == fs->group_desc[i].bg_inode_bitmap) {
 			sprintf(problem, "is the inode bitmap of group %d", i);
 			break;
@@ -2481,6 +2487,15 @@ static int process_bad_block(ext2_filsys fs,
 			}
 			return 0;
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (blk == fs->group_desc[i].bg_exclude_bitmap) {
+			if (fix_problem(ctx, PR_1_BB_BAD_BLOCK, pctx)) {
+				ctx->invalid_exclude_bitmap_flag[i]++;
+				ctx->invalid_bitmaps++;
+			}
+			return 0;
+		}
+#endif
 		if (blk == fs->group_desc[i].bg_inode_bitmap) {
 			if (fix_problem(ctx, PR_1_IB_BAD_BLOCK, pctx)) {
 				ctx->invalid_inode_bitmap_flag[i]++;
@@ -2629,6 +2644,12 @@ static void handle_fs_bad_blocks(e2fsck_t ctx)
 			new_table_block(ctx, first_block, i, _("block bitmap"),
 					1, &fs->group_desc[i].bg_block_bitmap);
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		if (ctx->invalid_exclude_bitmap_flag[i]) {
+			new_table_block(ctx, first_block, i, _("exclude bitmap"),
+					1, &fs->group_desc[i].bg_exclude_bitmap);
+		}
+#endif
 		if (ctx->invalid_inode_bitmap_flag[i]) {
 			new_table_block(ctx, first_block, i, _("inode bitmap"),
 					1, &fs->group_desc[i].bg_inode_bitmap);
@@ -2702,6 +2723,25 @@ static void mark_table_blocks(e2fsck_t ctx)
 		    }
 
 		}
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		/*
+		 * Mark block used for the exclude bitmap
+		 */
+		if (fs->group_desc[i].bg_exclude_bitmap) {
+			if (ext2fs_test_block_bitmap(ctx->block_found_map,
+				     fs->group_desc[i].bg_exclude_bitmap)) {
+				pctx.blk = fs->group_desc[i].bg_exclude_bitmap;
+				if (fix_problem(ctx, PR_1_BB_CONFLICT, &pctx)) {
+					ctx->invalid_exclude_bitmap_flag[i]++;
+					ctx->invalid_bitmaps++;
+				}
+			} else {
+			    ext2fs_mark_block_bitmap(ctx->block_found_map,
+				     fs->group_desc[i].bg_exclude_bitmap);
+		    }
+
+		}
+#endif
 		/*
 		 * Mark block used for the inode bitmap
 		 */

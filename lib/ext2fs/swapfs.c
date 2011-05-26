@@ -97,6 +97,9 @@ void ext2fs_swap_super(struct ext2_super_block * sb)
 void ext2fs_swap_group_desc(struct ext2_group_desc *gdp)
 {
 	gdp->bg_block_bitmap = ext2fs_swab32(gdp->bg_block_bitmap);
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	gdp->bg_exlcude_bitmap = ext2fs_swab32(gdp->bg_exclude_bitmap);
+#endif
 	gdp->bg_inode_bitmap = ext2fs_swab32(gdp->bg_inode_bitmap);
 	gdp->bg_inode_table = ext2fs_swab32(gdp->bg_inode_table);
 	gdp->bg_free_blocks_count = ext2fs_swab16(gdp->bg_free_blocks_count);

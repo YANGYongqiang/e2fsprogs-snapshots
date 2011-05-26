@@ -264,6 +264,9 @@ struct e2fsck_struct {
 	 */
 	int *invalid_inode_bitmap_flag;
 	int *invalid_block_bitmap_flag;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	int *invalid_exclude_bitmap_flag;
+#endif
 	int *invalid_inode_table_flag;
 	int invalid_bitmaps;	/* There are invalid bitmaps/itable */
 

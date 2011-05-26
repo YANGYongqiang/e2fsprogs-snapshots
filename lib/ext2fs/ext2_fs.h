@@ -28,7 +28,6 @@
 #undef EXT2FS_DEBUG
 #define EXT2FS_SNAPSHOT_ON_DISK
 #define EXT2FS_SNAPSHOT_BIG_JOURNAL
-#define EXT2FS_SNAPSHOT_EXCLUDE_INODE
 #define EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 #define EXT2FS_SNAPSHOT_CTL
 #define EXT2FS_SNAPSHOT_HAS_SNAPSHOT
@@ -157,7 +156,7 @@ struct ext2_group_desc
 	__u16	bg_free_inodes_count;	/* Free inodes count */
 	__u16	bg_used_dirs_count;	/* Directories count */
 	__u16	bg_flags;
-#ifdef EXT2FS_SNAPSHOT_ON_DISK
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 	__u32	bg_exclude_bitmap;	/* Exclude bitmap block */
 	__u32	bg_reserved[1];
 #else
@@ -179,7 +178,7 @@ struct ext4_group_desc
 	__u16	bg_free_inodes_count;	/* Free inodes count */
 	__u16	bg_used_dirs_count;	/* Directories count */
 	__u16	bg_flags;
-#ifdef EXT2FS_SNAPSHOT_ON_DISK
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 	__u32	bg_exclude_bitmap;	/* Exclude bitmap block */
 	__u32	bg_reserved[1];
 #else
@@ -194,7 +193,7 @@ struct ext4_group_desc
 	__u16	bg_free_inodes_count_hi;/* Free inodes count MSB */
 	__u16	bg_used_dirs_count_hi;	/* Directories count MSB */
 	__u16   bg_pad;
-#ifdef EXT2FS_SNAPSHOT_ON_DISK
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 	__u32	bg_exclude_bitmap_hi;	/* Exclude bitmap block MSB */
 	__u32	bg_reserved2[2];
 #else
@@ -205,7 +204,7 @@ struct ext4_group_desc
 #define EXT2_BG_INODE_UNINIT	0x0001 /* Inode table/bitmap not initialized */
 #define EXT2_BG_BLOCK_UNINIT	0x0002 /* Block bitmap not initialized */
 #define EXT2_BG_INODE_ZEROED	0x0004 /* On-disk itable initialized to zero */
-#ifdef EXT2FS_SNAPSHOT_ON_DISK
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 #define EXT2_BG_EXCLUDE_UNINIT	0x0008 /* Exclude bitmap not initialized */
 #endif
 
@@ -338,6 +337,9 @@ struct ext2_dx_countlimit {
 struct ext2_new_group_input {
 	__u32 group;		/* Group number for this data */
 	__u32 block_bitmap;	/* Absolute block number of block bitmap */
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	__u32 exclude_bitmap;	/* Absolute block number of exclude bitmap */
+#endif
 	__u32 inode_bitmap;	/* Absolute block number of inode bitmap */
 	__u32 inode_table;	/* Absolute block number of inode table start */
 	__u32 blocks_count;	/* Total number of blocks in this group */
@@ -348,6 +350,9 @@ struct ext2_new_group_input {
 struct ext4_new_group_input {
 	__u32 group;		/* Group number for this data */
 	__u64 block_bitmap;	/* Absolute block number of block bitmap */
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+	__u64 exclude_bitmap;	/* Absolute block number of exclude bitmap */
+#endif
 	__u64 inode_bitmap;	/* Absolute block number of inode bitmap */
 	__u64 inode_table;	/* Absolute block number of inode table start */
 	__u32 blocks_count;	/* Total number of blocks in this group */
@@ -760,7 +765,7 @@ struct ext2_super_block {
 #define EXT2_FEATURE_COMPAT_DIR_INDEX		0x0020
 #define EXT2_FEATURE_COMPAT_LAZY_BG		0x0040
 #define EXT2_FEATURE_COMPAT_EXCLUDE_INODE	0x0080
-#ifdef EXT2FS_SNAPSHOT_ON_DISK
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
 #define EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP	0x0100
 #endif
 

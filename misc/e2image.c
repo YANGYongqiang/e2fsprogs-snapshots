@@ -282,6 +282,16 @@ static void mark_table_blocks(ext2_filsys fs)
 				     fs->group_desc[i].bg_block_bitmap);
 		}
 
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		/*
+		 * Mark block used for the exclude bitmap
+		 */
+		if (fs->group_desc[i].bg_exclude_bitmap) {
+			ext2fs_mark_block_bitmap(meta_block_map,
+				     fs->group_desc[i].bg_exclude_bitmap);
+		}
+#endif
+
 		/*
 		 * Mark block used for the inode bitmap
 		 */

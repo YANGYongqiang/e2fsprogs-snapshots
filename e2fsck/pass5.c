@@ -217,6 +217,10 @@ redo_counts:
 				bitmap = 1;
 			if (i == fs->group_desc[group].bg_block_bitmap)
 				bitmap = 1;
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+			else if (i == fs->group_desc[group].bg_exclude_bitmap)
+				bitmap = 1;
+#endif
 			else if (i == fs->group_desc[group].bg_inode_bitmap)
 				bitmap = 1;
 			else if (i >= fs->group_desc[group].bg_inode_table &&
@@ -480,7 +484,7 @@ redo_counts:
 			ctx->flags |= E2F_FLAG_ABORT;
 			return;
 		}
-		ext2fs_mark_exclude_dirty(fs);
+		ext2fs_mark_eb_dirty(fs);
 		/* clear fix_exclude flag */
 		if (fs->super->s_flags & EXT2_FLAGS_FIX_EXCLUDE) {
 			fs->super->s_flags &= ~EXT2_FLAGS_FIX_EXCLUDE;

@@ -835,7 +835,12 @@ static int check_if_fs_block(e2fsck_t ctx, blk_t test_block)
 
 		/* Check the bitmap blocks */
 		if ((test_block == fs->group_desc[i].bg_block_bitmap) ||
+#ifdef EXT2FS_SNAPSHOT_EXCLUDE_BITMAP
+		    (test_block == fs->group_desc[i].bg_exclude_bitmap) ||
 		    (test_block == fs->group_desc[i].bg_inode_bitmap))
+#else
+		    (test_block == fs->group_desc[i].bg_inode_bitmap))
+#endif
 			return 1;
 
 		first_block += fs->super->s_blocks_per_group;
