@@ -553,6 +553,9 @@ struct problem_context {
 /* Block bitmap conflicts with some other fs block */
 #define PR_1_EB_CONFLICT		0x010101
 
+/* Corrupted snapshot list */
+#define PR_0_BAD_SNAPSHOT_LIST			0x000102
+
 
 /*
  * Pass 1b errors

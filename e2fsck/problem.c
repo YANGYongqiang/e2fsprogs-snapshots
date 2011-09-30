@@ -41,7 +41,8 @@
 #define PROMPT_UNLINK	17
 #define PROMPT_CLEAR_HTREE 18
 #define PROMPT_RECREATE 19
-#define PROMPT_NULL	20
+#define PROMPT_TERMINATE_LIST 20
+#define PROMPT_NULL	21
 
 /*
  * These are the prompts which are used to ask the user if they want
@@ -68,7 +69,8 @@ static const char *prompt[] = {
 	N_("Unlink"),		/* 17 */
 	N_("Clear HTree index"),/* 18 */
 	N_("Recreate"),		/* 19 */
-	"",			/* 20 */
+	N_("Terminate list"),	/* 20 */
+	"",			/* 21 */
 };
 
 /*
@@ -96,7 +98,8 @@ static const char *preen_msg[] = {
 	N_("UNLINKED"),		/* 17 */
 	N_("HTREE INDEX CLEARED"),/* 18 */
 	N_("WILL RECREATE"),	/* 19 */
-	"",			/* 20 */
+	N_("LIST TERMINATED"),	/* 20 */
+	"",			/* 21 */
 };
 
 static struct e2fsck_problem problem_table[] = {
@@ -332,6 +335,11 @@ static struct e2fsck_problem problem_table[] = {
 	{ PR_0_RESIZE_INODE_INVALID,
 	  N_("Resize @i not valid.  "),
 	  PROMPT_RECREATE, 0 },
+
+	/* Corrupted snapshot list */
+	{ PR_0_BAD_SNAPSHOT_LIST,
+	  N_("Bad @i found on snapshot list.  "),
+	  PROMPT_TERMINATE_LIST, PR_PREEN_OK },
 
 	/* Last mount time is in the future */
 	{ PR_0_FUTURE_SB_LAST_MOUNT,
