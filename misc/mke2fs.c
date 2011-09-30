@@ -1296,7 +1296,7 @@ profile_error:
 	}
 
 	while ((c = getopt (argc, argv,
-		    "b:cg:i:jl:m:no:qr:s:t:vC:E:FG:I:J:KL:M:N:O:R:ST:U:V")) != EOF) {
+		    "b:cg:i:jl:m:no:qr:s:t:vC:E:FG:I:J:KL:M:N:O:R:ST:U:Vx")) != EOF) {
 		switch (c) {
 		case 'b':
 			blocksize = strtol(optarg, &tmp, 0);
@@ -1482,6 +1482,13 @@ profile_error:
 		case 'V':
 			/* Print version number and exit */
 			show_version_only++;
+			break;
+		case 'x':
+			blocksize = sys_page_size;
+			fs_param.s_log_block_size =
+				int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
+			/* create exclude bitmap */
+			edit_feature("exclude_bitmap", &fs_param.s_feature_compat);
 			break;
 		default:
 			usage();

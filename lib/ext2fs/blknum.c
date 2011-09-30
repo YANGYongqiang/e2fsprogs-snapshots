@@ -230,6 +230,33 @@ void ext2fs_block_bitmap_loc_set(ext2_filsys fs, dgrp_t group, blk64_t blk)
 }
 
 /*
+ * Return the exclude bitmap block of a group
+ */
+blk64_t ext2fs_exclude_bitmap_loc(ext2_filsys fs, dgrp_t group)
+{
+	struct ext4_group_desc *gdp;
+
+	gdp = ext4fs_group_desc(fs, fs->group_desc, group);
+	return gdp->bg_exclude_bitmap_lo |
+		(fs->super->s_feature_incompat
+		 & EXT4_FEATURE_INCOMPAT_64BIT ?
+		 (__u64)gdp->bg_exclude_bitmap_hi << 32 : 0);
+}
+
+/*
+ * Set the exclude bitmap block of a group
+ */
+void ext2fs_exclude_bitmap_loc_set(ext2_filsys fs, dgrp_t group, blk64_t blk)
+{
+	struct ext4_group_desc *gdp;
+
+	gdp = ext4fs_group_desc(fs, fs->group_desc, group);
+	gdp->bg_exclude_bitmap_lo = blk;
+	if (fs->super->s_feature_incompat & EXT4_FEATURE_INCOMPAT_64BIT)
+		gdp->bg_exclude_bitmap_hi = (__u64) blk >> 32;
+}
+
+/*
  * Return the inode bitmap block of a group
  */
 blk64_t ext2fs_inode_bitmap_loc(ext2_filsys fs, dgrp_t group)

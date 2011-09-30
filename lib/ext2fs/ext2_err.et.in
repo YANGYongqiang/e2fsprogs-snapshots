@@ -101,6 +101,12 @@ ec	EXT2_ET_BLOCK_BITMAP_WRITE,
 ec	EXT2_ET_BLOCK_BITMAP_READ,
 	"Can't read an block bitmap"
 
+ec	EXT2_ET_EXCLUDE_BITMAP_WRITE,
+	"Can't write an snapshot bitmap"
+
+ec	EXT2_ET_EXCLUDE_BITMAP_READ,
+	"Can't read an snapshot bitmap"
+
 ec	EXT2_ET_INODE_TABLE_WRITE,
 	"Can't write an inode table"
 

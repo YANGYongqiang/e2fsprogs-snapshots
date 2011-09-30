@@ -80,7 +80,7 @@ static void adjust_extattr_refcount(e2fsck_t ctx, ext2_refcount_t refcount,
 struct process_block_struct {
 	ext2_ino_t	ino;
 	unsigned	is_dir:1, is_reg:1, clear:1, suppress:1,
-				fragmented:1, compressed:1, bbcheck:1;
+			fragmented:1, compressed:1, bbcheck:1, snapfile:1;
 	blk64_t		num_blocks;
 	blk64_t		max_blocks;
 	e2_blkcnt_t	last_block;
@@ -621,6 +621,16 @@ void e2fsck_pass1(e2fsck_t ctx)
 	pctx.errcode = ext2fs_allocate_subcluster_bitmap(fs,
 						_("in-use block map"),
 						&ctx->block_found_map);
+	if (pctx.errcode) {
+		pctx.num = 1;
+		fix_problem(ctx, PR_1_ALLOCATE_BBITMAP_ERROR, &pctx);
+		ctx->flags |= E2F_FLAG_ABORT;
+		return;
+	}
+	if (sb->s_feature_compat & EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP)
+		pctx.errcode = ext2fs_allocate_block_bitmap(fs,
+				_("excluded block map"),
+				&ctx->block_excluded_map);
 	if (pctx.errcode) {
 		pctx.num = 1;
 		fix_problem(ctx, PR_1_ALLOCATE_BBITMAP_ERROR, &pctx);
@@ -1940,6 +1950,7 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 	pb.previous_block = 0;
 	pb.is_dir = LINUX_S_ISDIR(inode->i_mode);
 	pb.is_reg = LINUX_S_ISREG(inode->i_mode);
+	pb.snapfile = (pb.is_reg && (inode->i_flags & EXT4_SNAPFILE_FL));
 	pb.max_blocks = 1 << (31 - fs->super->s_log_block_size);
 	pb.inode = inode;
 	pb.pctx = pctx;
@@ -2296,6 +2307,10 @@ static int process_block(ext2_filsys fs,
 		     (blk & EXT2FS_CLUSTER_MASK(ctx->fs)) ==
 		     (blockcnt & EXT2FS_CLUSTER_MASK(ctx->fs)))) {
 		mark_block_used(ctx, blk);
+		/* mark snapshot file blocks excluded */
+		if (p->snapfile && ctx->block_excluded_map)
+			ext2fs_fast_mark_block_bitmap2(ctx->block_excluded_map,
+					blk);
 		p->num_blocks++;
 	}
 	if (blockcnt >= 0)

@@ -222,6 +222,14 @@ static void list_desc (ext2_filsys fs)
 		print_number(ext2fs_block_bitmap_loc(fs, i));
 		print_bg_rel_offset(fs, ext2fs_block_bitmap_loc(fs, i), 0,
 				    first_block, last_block);
+		if (fs->super->s_feature_compat &
+				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) {
+			fputs(_(", Exclude bitmap at "), stdout);
+			print_number(ext2fs_exclude_bitmap_loc(fs, i));
+			print_bg_rel_offset(fs,
+					ext2fs_exclude_bitmap_loc(fs, i),
+					0, first_block, last_block);
+		}
 		fputs(_(", Inode bitmap at "), stdout);
 		print_number(ext2fs_inode_bitmap_loc(fs, i));
 		print_bg_rel_offset(fs, ext2fs_inode_bitmap_loc(fs, i), 0,
