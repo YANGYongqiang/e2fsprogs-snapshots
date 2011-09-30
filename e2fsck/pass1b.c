@@ -910,6 +910,11 @@ static int check_if_fs_block(e2fsck_t ctx, blk64_t test_block)
 		    (test_block == ext2fs_inode_bitmap_loc(fs, i)))
 			return 1;
 
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    test_block == ext2fs_exclude_bitmap_loc(fs, i))
+			return 1;
+
 		first_block += fs->super->s_blocks_per_group;
 	}
 	return 0;

@@ -604,6 +604,20 @@ void check_super_block(e2fsck_t ctx)
 			ctx->invalid_block_bitmap_flag[i]++;
 			ctx->invalid_bitmaps++;
 		}
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    ((ext2fs_exclude_bitmap_loc(fs, i) < first_block) ||
+		    (ext2fs_exclude_bitmap_loc(fs, i) > last_block))) {
+			pctx.blk = ext2fs_exclude_bitmap_loc(fs, i);
+			if (fix_problem(ctx, PR_0_EB_NOT_GROUP, &pctx))
+				ext2fs_exclude_bitmap_loc_set(fs, i, 0);
+		}
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    ext2fs_exclude_bitmap_loc(fs, i) == 0) {
+			ctx->invalid_exclude_bitmap_flag[i]++;
+			ctx->invalid_bitmaps++;
+		}
 		if ((ext2fs_inode_bitmap_loc(fs, i) < first_block) ||
 		    (ext2fs_inode_bitmap_loc(fs, i) > last_block)) {
 			pctx.blk = ext2fs_inode_bitmap_loc(fs, i);
@@ -637,6 +651,8 @@ void check_super_block(e2fsck_t ctx)
 		if (!ext2fs_group_desc_csum_verify(fs, i)) {
 			if (fix_problem(ctx, PR_0_GDT_CSUM, &pctx)) {
 				ext2fs_bg_flags_clear(fs, i, EXT2_BG_BLOCK_UNINIT);
+				ext2fs_bg_flags_clear(fs, i,
+						      EXT2_BG_EXCLUDE_UNINIT);
 				ext2fs_bg_flags_clear(fs, i, EXT2_BG_INODE_UNINIT);
 				ext2fs_bg_itable_unused_set(fs, i, 0);
 				should_be = 1;
@@ -646,10 +662,12 @@ void check_super_block(e2fsck_t ctx)
 
 		if (!csum_flag &&
 		    (ext2fs_bg_flags_test(fs, i, EXT2_BG_BLOCK_UNINIT) ||
+		     ext2fs_bg_flags_test(fs, i, EXT2_BG_EXCLUDE_UNINIT) ||
 		     ext2fs_bg_flags_test(fs, i, EXT2_BG_INODE_UNINIT) ||
 		     ext2fs_bg_itable_unused(fs, i) != 0)) {
 			if (fix_problem(ctx, PR_0_GDT_UNINIT, &pctx)) {
 				ext2fs_bg_flags_clear(fs, i, EXT2_BG_BLOCK_UNINIT);
+				ext2fs_bg_flags_clear(fs, i, EXT2_BG_EXCLUDE_UNINIT);
 				ext2fs_bg_flags_clear(fs, i, EXT2_BG_INODE_UNINIT);
 				ext2fs_bg_itable_unused_set(fs, i, 0);
 				should_be = 1;

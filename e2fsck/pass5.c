@@ -257,6 +257,9 @@ redo_counts:
 			     LE_CLSTR(i, old_desc_blk + old_desc_blocks-1)) ||
 			    (new_desc_blk && EQ_CLSTR(i, new_desc_blk)) ||
 			    EQ_CLSTR(i, ext2fs_block_bitmap_loc(fs, group)) ||
+			    (EXT2_HAS_COMPAT_FEATURE(fs->super,
+				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+			    (EQ_CLSTR(i, ext2fs_exclude_bitmap_loc(fs, group)))) ||
 			    EQ_CLSTR(i, ext2fs_inode_bitmap_loc(fs, group)) ||
 			    (GE_CLSTR(i, ext2fs_inode_table_loc(fs, group)) &&
 			     LE_CLSTR(i, (ext2fs_inode_table_loc(fs, group) +
