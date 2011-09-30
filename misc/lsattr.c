@@ -79,8 +79,13 @@ static int list_attributes (const char * name)
 {
 	unsigned long flags;
 	unsigned long generation;
+	int ret;
 
-	if (fgetflags (name, &flags) == -1) {
+	if (pf_options & PFOPT_SNAPSHOT)
+		ret = fgetsnapflags (name, &flags);
+	else
+		ret = fgetflags (name, &flags);
+	if (ret == -1) {
 		com_err (program_name, errno, _("While reading flags on %s"),
 			 name);
 		return -1;
@@ -170,6 +175,10 @@ int main (int argc, char ** argv)
 #endif
 	if (argc && *argv)
 		program_name = *argv;
+	i = strlen(program_name);
+	if (i >= 6 && !strcmp(program_name + i - 6, "lssnap"))
+		pf_options |= PFOPT_SNAPSHOT;
+
 	while ((c = getopt (argc, argv, "RVadlv")) != EOF)
 		switch (c)
 		{
@@ -186,7 +195,7 @@ int main (int argc, char ** argv)
 				dirs_opt = 1;
 				break;
 			case 'l':
-				pf_options = PFOPT_LONG;
+				pf_options |= PFOPT_LONG;
 				break;
 			case 'v':
 				generation_opt = 1;

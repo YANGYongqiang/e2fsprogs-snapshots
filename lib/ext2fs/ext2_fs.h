@@ -348,6 +348,24 @@ struct ext4_new_group_input {
 #define EXT2_IOC_GROUP_ADD		_IOW('f', 8,struct ext2_new_group_input)
 #define EXT4_IOC_GROUP_ADD		_IOW('f', 8,struct ext4_new_group_input)
 #define EXT4_IOC_RESIZE_FS		_IOW('f', 16, __u64)
+#define EXT2_IOC_GETSNAPFLAGS		_IOR('f', 13, long)
+
+/*
+ * Snapshot status/control flags for lssnap/chsnap.
+ * The flags below must appear in the same order as they do in ext4 dynamic
+ * inode state flags enum. GETSNAPFLAGS ioctl shifts them down to lower 8 bits.
+ */
+enum {
+	EXT4_SNAPSHOT_LIST = 0,		/* snapshot is on list (S) */
+	EXT4_SNAPSHOT_ENABLED = 1,	/* snapshot is enabled (n) */
+	EXT4_SNAPSHOT_ACTIVE = 2,	/* snapshot is active  (a) */
+	EXT4_SNAPSHOT_INUSE = 3,	/* snapshot is in-use  (p) */
+	EXT4_SNAPSHOT_DELETED = 4,	/* snapshot is deleted (s) */
+	EXT4_SNAPSHOT_SHRUNK = 5,	/* snapshot was shrunk (h) */
+	EXT4_SNAPSHOT_OPEN = 6,		/* snapshot is mounted (o) */
+	EXT4_SNAPSHOT_TAGGED = 7,	/* snapshot is tagged  (t) */
+};
+
 
 /*
  * Structure of an inode on the disk

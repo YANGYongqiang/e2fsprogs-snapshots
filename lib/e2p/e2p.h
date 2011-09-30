@@ -26,8 +26,10 @@
 /* `options' for print_flags() */
 
 #define PFOPT_LONG  1 /* Must be 1 for compatibility with `int long_format'. */
+#define PFOPT_SNAPSHOT  2 /* Print snapshot flags */
 
 
+int fgetsnapflags(const char * name, unsigned long * flags);
 int fgetflags (const char * name, unsigned long * flags);
 int fgetversion (const char * name, unsigned long * version);
 int fsetflags (const char * name, unsigned long flags);
