@@ -1135,6 +1135,7 @@ static void write_raw_image_file(ext2_filsys fs, int fd, int type, int flags)
 			}
 		} else {
 			if ((inode.i_flags & EXT4_EXTENTS_FL) ||
+			    (inode.i_flags & EXT4_SNAPFILE_FL) ||
 			    inode.i_block[EXT2_IND_BLOCK] ||
 			    inode.i_block[EXT2_DIND_BLOCK] ||
 			    inode.i_block[EXT2_TIND_BLOCK]) {

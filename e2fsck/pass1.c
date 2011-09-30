@@ -1129,6 +1129,7 @@ void e2fsck_pass1(e2fsck_t ctx)
 		    (inode->i_block[EXT2_IND_BLOCK] ||
 		     inode->i_block[EXT2_DIND_BLOCK] ||
 		     inode->i_block[EXT2_TIND_BLOCK] ||
+		     (inode->i_flags & EXT4_SNAPFILE_FL) ||
 		     ext2fs_file_acl_block(inode))) {
 			inodes_to_process[process_inode_count].ino = ino;
 			inodes_to_process[process_inode_count].inode = *inode;
@@ -2051,8 +2052,10 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 		quota_data_inodes(ctx->qctx, inode, ino, +1);
 	}
 
-	if (!(fs->super->s_feature_ro_compat &
-	      EXT4_FEATURE_RO_COMPAT_HUGE_FILE) ||
+	if ((!(fs->super->s_feature_ro_compat &
+	       EXT4_FEATURE_RO_COMPAT_HUGE_FILE) &&
+	     /* snapshot file always supports the 'huge_file' flag */
+	     !(inode->i_flags & EXT4_SNAPFILE_FL)) ||
 	    !(inode->i_flags & EXT4_HUGE_FILE_FL))
 		pb.num_blocks *= (fs->blocksize / 512);
 	pb.num_blocks *= EXT2FS_CLUSTER_RATIO(fs);
@@ -2084,6 +2087,7 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 		    !(inode->i_flags & EXT4_EOFBLOCKS_FL))
 			bad_size = 3;
 		else if (!(extent_fs && (inode->i_flags & EXT4_EXTENTS_FL)) &&
+			 !(pb.is_reg && (inode->i_flags & EXT4_SNAPFILE_FL)) &&
 			 size > ext2_max_sizes[fs->super->s_log_block_size])
 			/* too big for a direct/indirect-mapped file */
 			bad_size = 4;
@@ -2121,8 +2125,10 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 	if (LINUX_S_ISREG(inode->i_mode) && EXT2_I_SIZE(inode) >= 0x80000000UL)
 		ctx->large_files++;
 	if ((pb.num_blocks != ext2fs_inode_i_blocks(fs, inode)) ||
-	    ((fs->super->s_feature_ro_compat &
-	      EXT4_FEATURE_RO_COMPAT_HUGE_FILE) &&
+	    (((fs->super->s_feature_ro_compat &
+	       EXT4_FEATURE_RO_COMPAT_HUGE_FILE) ||
+	      /* snapshot file always supports the 'huge_file' flag */
+	      (inode->i_flags & EXT4_SNAPFILE_FL)) &&
 	     (inode->i_flags & EXT4_HUGE_FILE_FL) &&
 	     (inode->osd2.linux2.l_i_blocks_hi != 0))) {
 		pctx->num = pb.num_blocks;

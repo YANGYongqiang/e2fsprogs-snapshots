@@ -497,6 +497,12 @@ errcode_t ext2fs_block_iterate3(ext2_filsys fs,
 	 * Iterate over normal data blocks
 	 */
 	for (i = 0; i < EXT2_NDIR_BLOCKS ; i++, ctx.bcount++) {
+		if ((inode.i_flags & EXT4_SNAPFILE_FL) &&
+				LINUX_S_ISREG(inode.i_mode) &&
+				i < EXT4_EXTRA_TIND_BLOCKS)
+			/* snapshot file extra triple indirect blocks */
+			continue;
+
 		if (inode.i_block[i] || (flags & BLOCK_FLAG_APPEND)) {
 			blk64 = inode.i_block[i];
 			ret |= (*ctx.func)(fs, &blk64, ctx.bcount, 0, i, 
@@ -526,6 +532,17 @@ errcode_t ext2fs_block_iterate3(ext2_filsys fs,
 					  0, EXT2_TIND_BLOCK, &ctx);
 		if (ret & BLOCK_ABORT)
 			goto abort_exit;
+	}
+	if ((inode.i_flags & EXT4_SNAPFILE_FL) && LINUX_S_ISREG(inode.i_mode)) {
+		/* iterate snapshot file extra triple indirect blocks */
+		for (i = 0; i < EXT4_EXTRA_TIND_BLOCKS; i++) {
+			if (!inode.i_block[i] && !(flags & BLOCK_FLAG_APPEND))
+				continue;
+			ret |= block_iterate_tind(&inode.i_block[i],
+					0, EXT2_N_BLOCKS+i, &ctx);
+			if (ret & BLOCK_ABORT)
+				goto abort_exit;
+		}
 	}
 
 abort_exit:
