@@ -44,6 +44,13 @@ extern "C" {
 #define SUPERBLOCK_SIZE		1024
 
 /*
+ * When blocksize > 2K, the space after the superblock is used as
+ * a buffer to record error messages (in 256 bytes records).
+ */
+#define MSGBUF_OFFSET           (SUPERBLOCK_OFFSET+SUPERBLOCK_SIZE)
+#define MSGBUF_RECLEN           256
+
+/*
  * The last ext2fs revision level that this version of the library is
  * able to support.
  */

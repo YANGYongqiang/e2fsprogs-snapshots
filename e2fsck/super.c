@@ -629,6 +629,70 @@ static void e2fsck_fix_dirhash_hint(e2fsck_t ctx)
 	}
 }
 
+/*
+ * This function prints the message buffer at the end of super block.
+ */
+static void e2fsck_print_message_buffer(e2fsck_t ctx)
+{
+	char *buf;
+	int n, len = ctx->fs->blocksize - MSGBUF_OFFSET;
+	unsigned offset = 0;
+	int retval;
+
+	if (len < MSGBUF_OFFSET)
+		/* 1K or 2K fs->blocksize */
+		return;
+
+	buf = (char *) e2fsck_allocate_memory(ctx, len, "message buffer");
+
+	/* keep it simple - write in MSGBUF_OFFSET blocksize */
+	io_channel_set_blksize(ctx->fs->io, MSGBUF_OFFSET);
+	n = len / MSGBUF_OFFSET;
+	/* read message buffer from super block + 2K */
+	retval = io_channel_read_blk(ctx->fs->io, 1, n, buf);
+	if (retval || !*buf)
+		goto out;
+
+	/* print messages in buffer */
+	puts("Error messages recorded in message buffer:");
+	while (offset < len && buf[offset]) {
+		puts(buf+offset);
+		offset += MSGBUF_RECLEN;
+	}
+	puts("End of message buffer.");
+out:
+	io_channel_set_blksize(ctx->fs->io, ctx->fs->blocksize);
+	ext2fs_free_mem(&buf);
+}
+
+/*
+ * This function clears the message buffer at the end of super block.
+ * It is called before clearing the EXT2_ERROR_FS flag from super block.
+ */
+void e2fsck_clear_message_buffer(e2fsck_t ctx)
+{
+	char *buf;
+	int n, len = ctx->fs->blocksize - MSGBUF_OFFSET;
+	unsigned offset = 0;
+	int retval;
+
+	if (len < MSGBUF_OFFSET)
+		/* 1K or 2K fs->blocksize */
+		return;
+
+	buf = (char *) e2fsck_allocate_memory(ctx, len, "message buffer");
+
+	/* keep it simple - write in MSGBUF_OFFSET blocksize */
+	io_channel_set_blksize(ctx->fs->io, MSGBUF_OFFSET);
+	n = len / MSGBUF_OFFSET;
+
+	/* clear message buffer at super block + 2K */
+	memset(buf, 0, len);
+	io_channel_write_blk(ctx->fs->io, 1, n, buf);
+	io_channel_set_blksize(ctx->fs->io, ctx->fs->blocksize);
+	ext2fs_free_mem(&buf);
+}
+
 
 void check_super_block(e2fsck_t ctx)
 {
@@ -1054,6 +1118,11 @@ void check_super_block(e2fsck_t ctx)
 	 * Hide quota inodes if necessary.
 	 */
 	e2fsck_hide_quota(ctx);
+
+	/*
+	 * Print message buffer if necessary
+	 */
+	e2fsck_print_message_buffer(ctx);
 
 	return;
 }
