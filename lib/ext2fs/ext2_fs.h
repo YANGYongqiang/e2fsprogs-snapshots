@@ -349,6 +349,7 @@ struct ext4_new_group_input {
 #define EXT4_IOC_GROUP_ADD		_IOW('f', 8,struct ext4_new_group_input)
 #define EXT4_IOC_RESIZE_FS		_IOW('f', 16, __u64)
 #define EXT2_IOC_GETSNAPFLAGS		_IOR('f', 13, long)
+#define EXT2_IOC_SETSNAPFLAGS		_IOW('f', 14, long)
 
 /*
  * Snapshot status/control flags for lssnap/chsnap.

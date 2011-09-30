@@ -57,6 +57,8 @@
 
 static const char * program_name = "chattr";
 
+static int chsnap;
+
 static int add;
 static int rem;
 static int set;
@@ -82,8 +84,14 @@ static unsigned long sf;
 
 static void usage(void)
 {
+	if (chsnap) {
+		fprintf(stderr,
+			_("Usage: %s [-RVf] [-+=Sn] snapshot files...\n"),
+			program_name);
+		exit(1);
+	}
 	fprintf(stderr,
-		_("Usage: %s [-RVf] [-+=AacDdeijsSu] [-v version] files...\n"),
+		_("Usage: %s [-RVf] [-+=AacDdeijsSux] [-v version] files...\n"),
 		program_name);
 	exit(1);
 }
@@ -93,7 +101,7 @@ struct flags_char {
 	char 		optchar;
 };
 
-static const struct flags_char flags_array[] = {
+static const struct flags_char ext2_flags_array[] = {
 	{ EXT2_NOATIME_FL, 'A' },
 	{ EXT2_SYNC_FL, 'S' },
 	{ EXT2_DIRSYNC_FL, 'D' },
@@ -107,6 +115,16 @@ static const struct flags_char flags_array[] = {
 	{ EXT2_UNRM_FL, 'u' },
 	{ EXT2_NOTAIL_FL, 't' },
 	{ EXT2_TOPDIR_FL, 'T' },
+	{ EXT4_SNAPFILE_FL, 'x' },
+	{ 0, 0 }
+};
+
+static const struct flags_char *flags_array = ext2_flags_array;
+
+/* Snapshot dynamic state flags */
+static struct flags_char snapshot_flags_array[] = {
+	{ 1UL<<EXT4_SNAPSHOT_LIST, 'S' },
+	{ 1UL<<EXT4_SNAPSHOT_ENABLED, 'n' },
 	{ 0, 0 }
 };
 
@@ -194,6 +212,7 @@ static int change_attributes(const char * name)
 	unsigned long flags;
 	STRUCT_STAT	st;
 	int extent_file = 0;
+	int ret;
 
 	if (LSTAT (name, &st) == -1) {
 		if (!silent)
@@ -202,7 +221,11 @@ static int change_attributes(const char * name)
 		return -1;
 	}
 
-	if (fgetflags(name, &flags) == -1) {
+	if (chsnap)
+		ret = fgetsnapflags (name, &flags);
+	else
+		ret = fgetflags (name, &flags);
+	if (ret == -1) {
 		if (!silent)
 			com_err(program_name, errno,
 					_("while reading flags on %s"), name);
@@ -223,7 +246,11 @@ static int change_attributes(const char * name)
 			print_flags (stdout, sf, 0);
 			printf ("\n");
 		}
-		if (fsetflags (name, sf) == -1)
+		if (chsnap)
+			ret = fsetsnapflags (name, sf);
+		else
+			ret = fsetflags (name, sf);
+		if (ret == -1)
 			perror (name);
 	} else {
 		if (rem)
@@ -244,7 +271,11 @@ static int change_attributes(const char * name)
 		}
 		if (!S_ISDIR(st.st_mode))
 			flags &= ~EXT2_DIRSYNC_FL;
-		if (fsetflags(name, flags) == -1) {
+		if (chsnap)
+			ret = fsetsnapflags (name, flags);
+		else
+			ret = fsetflags (name, flags);
+		if (ret == -1) {
 			if (!silent) {
 				com_err(program_name, errno,
 						_("while setting flags on %s"),
@@ -304,6 +335,11 @@ int main (int argc, char ** argv)
 #endif
 	if (argc && *argv)
 		program_name = *argv;
+	i = strlen(program_name);
+	if (i >= 6 && !strcmp(program_name + i - 6, "chsnap")) {
+		flags_array = snapshot_flags_array;
+		chsnap = 1;
+	}
 	i = 1;
 	while (i < argc && !end_arg) {
 		/* '--' arg should end option processing */
