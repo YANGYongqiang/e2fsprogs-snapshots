@@ -205,6 +205,7 @@ static struct field_set_info inode_fields[] = {
 
 static struct field_set_info ext2_bg_fields[] = {
 	{ "block_bitmap", &set_gd.bg_block_bitmap, NULL, 4, parse_uint },
+	{ "exclude_bitmap", &set_gd.bg_exclude_bitmap_lo, NULL, 4, parse_uint },
 	{ "inode_bitmap", &set_gd.bg_inode_bitmap, NULL, 4, parse_uint },
 	{ "inode_table", &set_gd.bg_inode_table, NULL, 4, parse_uint },
 	{ "free_blocks_count", &set_gd.bg_free_blocks_count, NULL, 2, parse_uint },

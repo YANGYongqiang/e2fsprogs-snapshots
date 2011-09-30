@@ -88,6 +88,15 @@ request do_setb, "Set a block's in-use flag",
 request do_testb, "Test a block's in-use flag",
 	testb;
 
+request do_freee, "Clear a block's exclude flag",
+	freee;
+
+request do_sete, "Set a block's exclude flag",
+	sete;
+
+request do_teste, "Test a block's exclude flag",
+	teste;
+
 request do_modify_inode, "Modify an inode by structure",
 	modify_inode, mi;
 
