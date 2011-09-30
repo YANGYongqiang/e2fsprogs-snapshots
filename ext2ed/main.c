@@ -84,6 +84,7 @@ struct struct_group_info group_info;				/* Used by group_com.c */
 struct struct_super_info super_info;				/* Used by super_com.c */
 struct struct_remember_lifo remember_lifo;			/* A circular memory of objects */
 struct struct_block_bitmap_info block_bitmap_info;		/* Used by blockbitmap_com.c */
+struct struct_exlcude_bitmap_info exclude_bitmap_info;		/* Used by excludebitmap_com.c */
 struct struct_inode_bitmap_info inode_bitmap_info;		/* Used by inodebitmap_com.c */
 
 int redraw_request=0;						/* Is set by a signal handler to handle terminal */

@@ -157,6 +157,20 @@ void type_ext2_group_desc___blockbitmap (char *command_line)
 	sprintf (buffer,"settype block_bitmap");dispatch (buffer);
 }
 
+void type_ext2_group_desc___excludebitmap (char *command_line)
+
+{
+	long exclude_bitmap_offset;
+	char buffer [80];
+
+	exclude_bitmap_info.entry_num=0;
+	exclude_bitmap_info.group_num=group_info.group_num;
+
+	exclude_bitmap_offset=type_data.u.t_ext2_group_desc.bg_exclude_bitmap;
+	sprintf (buffer,"setoffset block %ld",exclude_bitmap_offset);dispatch (buffer);
+	sprintf (buffer,"settype exclude_bitmap");dispatch (buffer);
+}
+
 void type_ext2_group_desc___inodebitmap (char *command_line)
 
 {
