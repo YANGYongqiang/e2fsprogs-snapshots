@@ -434,6 +434,34 @@ cleanup:
  }
 
 /*
+ * Reset exclude bitmap (uninit exclude bitmap blocks)
+ */
+static void reset_exclude_bitmap(ext2_filsys fs)
+{
+	struct ext2_group_desc *gd;
+	int set_csum = 0, gd_dirty = 0;
+	dgrp_t i;
+
+	if (fs->super->s_feature_ro_compat &
+			EXT4_FEATURE_RO_COMPAT_GDT_CSUM)
+		set_csum = 1;
+
+	for (i = 0; i < fs->group_desc_count; i++) {
+		gd = ext2fs_group_desc(fs, fs->group_desc, i);
+		if (gd->bg_flags & EXT2_BG_EXCLUDE_UNINIT)
+			continue;
+		gd->bg_flags |= EXT2_BG_EXCLUDE_UNINIT;
+		if (set_csum)
+			ext2fs_group_desc_csum_set(fs, i);
+		gd_dirty = 1;
+	}
+	if (gd_dirty) {
+		fs->flags &= ~EXT2_FLAG_SUPER_ONLY;
+		ext2fs_mark_super_dirty(fs);
+	}
+}
+
+/*
  * Check that snapshot list contains valid snapshot files.
  * Returns the number of valid snapshots on list.
  *
@@ -509,11 +537,44 @@ void check_snapshots(e2fsck_t ctx)
 {
 	struct ext2_super_block *sb = ctx->fs->super;
 	struct problem_context	pctx;
-	int cont;
+	int cont, clear_snapshots = 0;
 
 	if (!(sb->s_feature_ro_compat & EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT))
 		/* no snapshots */
 		return;
+
+	clear_problem_context(&pctx);
+	if (ctx->options & E2F_OPT_CLEAR_SNAPSHOTS) {
+		/* user requested to clear snapshots */
+		if (fix_problem(ctx, PR_0_CLEAR_SNAPSHOTS, &pctx))
+			clear_snapshots = 1;
+		/* don't ask again after pass1 restart */
+		ctx->options &= ~E2F_OPT_CLEAR_SNAPSHOTS;
+	}
+	else if (sb->s_flags & EXT2_FLAGS_FIX_SNAPSHOT) {
+		/* corrupted snapshot */
+		if (fix_problem(ctx, PR_0_BAD_SNAPSHOT, &pctx))
+			clear_snapshots = 1;
+	}
+
+	if (clear_snapshots) {
+		if (sb->s_snapshot_list || sb->s_snapshot_inum ||
+				(sb->s_flags & (EXT2_FLAGS_FIX_SNAPSHOT |
+						EXT2_FLAGS_IS_SNAPSHOT))) {
+			/* reset snapshot list head */
+			sb->s_snapshot_list = sb->s_snapshot_inum = 0;
+			sb->s_flags &= ~(EXT2_FLAGS_FIX_SNAPSHOT |
+					EXT2_FLAGS_IS_SNAPSHOT);
+			ext2fs_mark_super_dirty(ctx->fs);
+		}
+		/* clear all snapshot inodes (in pass1) */
+		ctx->flags |= E2F_FLAG_CLEAR_SNAPSHOTS;
+		if (sb->s_feature_compat &
+				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP)
+			/* and reset exclude bitmap */
+			reset_exclude_bitmap(ctx->fs);
+		return;
+	}
 
 	if (!check_snapshot_list(ctx))
 		/* no valid snapshots on list */

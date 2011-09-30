@@ -556,6 +556,12 @@ struct problem_context {
 /* Corrupted snapshot list */
 #define PR_0_BAD_SNAPSHOT_LIST			0x000102
 
+/* Corrupted snapshot */
+#define PR_0_BAD_SNAPSHOT			0x000103
+
+/* Clearing all snapshot */
+#define PR_0_CLEAR_SNAPSHOTS			0x000104
+
 
 /*
  * Pass 1b errors
