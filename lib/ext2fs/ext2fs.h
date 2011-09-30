@@ -1327,6 +1327,8 @@ extern errcode_t ext2fs_add_journal_device(ext2_filsys fs,
 extern errcode_t ext2fs_add_journal_inode(ext2_filsys fs, blk_t num_blocks,
 					  int flags);
 extern int ext2fs_default_journal_size(__u64 num_blocks);
+extern int ext2fs_big_journal_size(int factor, __u64 blocks);
+extern int ext2fs_check_journal_size(ext2_filsys fs);
 
 /* openfs.c */
 extern errcode_t ext2fs_open(const char *name, int flags, int superblock,

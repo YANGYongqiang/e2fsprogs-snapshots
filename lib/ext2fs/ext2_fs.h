@@ -676,6 +676,19 @@ struct ext2_super_block {
 #define EXT3_JNL_BACKUP_BLOCKS	1
 
 /*
+ * A 'big' journal needs to accomodate extra snapshot COW credits.
+ * Default 'big' journal size accomodates maximum possible COW credits.
+ * Minimum required 'big' journal size accomodates the avarage COW credits.
+ */
+#define EXT4_DEF_JOURNAL_BLOCKS		32768
+#define EXT4_AVG_COW_CREDITS		16
+#define EXT4_MAX_COW_CREDITS		24
+#define EXT4_MIN_BIG_JOURNAL_BLOCKS	(EXT4_DEF_JOURNAL_BLOCKS* \
+					 EXT4_AVG_COW_CREDITS)
+#define EXT4_DEF_BIG_JOURNAL_BLOCKS	(EXT4_DEF_JOURNAL_BLOCKS* \
+					 EXT4_MAX_COW_CREDITS)
+
+/*
  * Feature set definitions
  */
 

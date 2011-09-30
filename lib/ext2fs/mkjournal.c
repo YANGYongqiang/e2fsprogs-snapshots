@@ -425,6 +425,47 @@ int ext2fs_default_journal_size(__u64 num_blocks)
 }
 
 /*
+ * Big journal is up to X times bigger than the default journal
+ * to accomodate snapshot COW credits in transactions.
+ * journal size is restricted to 1/32 of the filesystem size
+ */
+int ext2fs_big_journal_size(int factor, __u64 blocks)
+{
+	int mega_blocks = blocks >> 20;
+	if (!mega_blocks)
+		return ext2fs_default_journal_size(blocks);
+
+	if (mega_blocks < factor)
+		/* 32K/1M = 1/32 of filesystem size */
+		return EXT4_DEF_JOURNAL_BLOCKS*mega_blocks;
+
+	/* X times bigger than the default journal */
+	return EXT4_DEF_JOURNAL_BLOCKS*factor;
+}
+
+/*
+ * Return the number of blocks in the journal inode
+ */
+int ext2fs_check_journal_size(ext2_filsys fs)
+{
+	struct ext2_inode j_inode;
+	int j_blocks;
+
+	if (!(fs->super->s_feature_compat &
+		EXT3_FEATURE_COMPAT_HAS_JOURNAL) ||
+		!fs->super->s_journal_inum)
+		return 0;
+
+	if (ext2fs_read_inode(fs, fs->super->s_journal_inum, &j_inode))
+		return -1;
+
+	/* read journal inode size */
+	j_blocks = j_inode.i_size >> EXT2_BLOCK_SIZE_BITS(fs->super);
+
+	return j_blocks;
+}
+
+/*
  * This function adds a journal device to a filesystem
  */
 errcode_t ext2fs_add_journal_device(ext2_filsys fs, ext2_filsys journal_dev)

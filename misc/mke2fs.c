@@ -1485,10 +1485,14 @@ profile_error:
 			show_version_only++;
 			break;
 		case 'x':
+			/* Prepare for snapshots: */
+			/* 1. create a big journal */
+			journal_size = -EXT4_MAX_COW_CREDITS;
+			/* 2. use system page size as block size */
 			blocksize = sys_page_size;
 			fs_param.s_log_block_size =
 				int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
-			/* create exclude bitmap */
+			/* 3. create exclude bitmap */
 			edit_feature("exclude_bitmap", &fs_param.s_feature_compat);
 			break;
 		default:
