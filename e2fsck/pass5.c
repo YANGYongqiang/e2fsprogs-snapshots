@@ -550,7 +550,7 @@ redo_counts:
 			ctx->flags |= E2F_FLAG_ABORT;
 			return;
 		}
-		ext2fs_mark_exclude_dirty(fs);
+		ext2fs_mark_eb_dirty(fs);
 		/* clear fix_exclude flag */
 		if (fs->super->s_flags & EXT2_FLAGS_FIX_EXCLUDE) {
 			fs->super->s_flags &= ~EXT2_FLAGS_FIX_EXCLUDE;

@@ -73,7 +73,7 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block,
 					     &exclude_buf);
 		if (retval)
 			return retval;
-		memset(exclude_buf, 0xff, fs->blocksize);
+		memset(exclude_buf, 0x0, fs->blocksize);
 	}
 	if (do_inode) {
 		inode_nbytes = (size_t)
@@ -162,13 +162,17 @@ static errcode_t write_bitmaps(ext2_filsys fs, int do_inode, int do_block,
 				goto errout;
 			}
 		}
-	skip_this_inode_bitmap:
+skip_this_inode_bitmap:
 		ino_itr += inode_nbytes << 3;
 
 	}
 	if (do_block) {
 		fs->flags &= ~EXT2_FLAG_BB_DIRTY;
 		ext2fs_free_mem(&block_buf);
+	}
+	if (do_exclude) {
+		fs->flags &= ~EXT2_FLAG_EB_DIRTY;
+		ext2fs_free_mem(&exclude_buf);
 	}
 	if (do_inode) {
 		fs->flags &= ~EXT2_FLAG_IB_DIRTY;
@@ -294,7 +298,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block,
 			fs->group_desc_count;
 		while (block_nbytes > 0) {
 			if (do_exclude) {
-				retval = EXT2_ET_BLOCK_BITMAP_READ;
+				retval = EXT2_ET_EXCLUDE_BITMAP_READ;
 				goto cleanup;
 			}
 
@@ -448,14 +452,15 @@ errcode_t ext2fs_read_bitmaps(ext2_filsys fs)
 	if (fs->inode_map && fs->block_map && fs->exclude_map)
 		return 0;
 
-	return read_bitmaps(fs, !fs->inode_map, !fs->block_map, !fs->exclude_map);
+	return read_bitmaps(fs, !fs->inode_map, !fs->block_map,
+			    !fs->exclude_map);
 }
 
 errcode_t ext2fs_write_bitmaps(ext2_filsys fs)
 {
 	int do_inode = fs->inode_map && ext2fs_test_ib_dirty(fs);
 	int do_block = fs->block_map && ext2fs_test_bb_dirty(fs);
-	int do_exclude = fs->exclude_map && ext2fs_test_exclude_dirty(fs);
+	int do_exclude = fs->exclude_map && ext2fs_test_eb_dirty(fs);
 
 	if (!do_inode && !do_block && !do_exclude)
 		return 0;

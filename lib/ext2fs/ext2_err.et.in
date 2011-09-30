@@ -38,6 +38,9 @@ ec	EXT2_ET_MAGIC_BLOCK_BITMAP,
 ec	EXT2_ET_MAGIC_INODE_BITMAP,
 	"Wrong magic number for inode_bitmap structure"
 
+ec	EXT2_ET_MAGIC_EXCLUDE_BITMAP,
+	"Wrong magic number for snapshot_bitmap structure"
+
 ec	EXT2_ET_MAGIC_GENERIC_BITMAP,
 	"Wrong magic number for generic_bitmap structure"
 
@@ -350,6 +353,9 @@ ec	EXT2_ET_MAGIC_BLOCK_BITMAP64,
 ec	EXT2_ET_MAGIC_INODE_BITMAP64,
 	"Wrong magic number for 64-bit inode bitmap"
 
+ec	EXT2_ET_MAGIC_EXCLUDE_BITMAP64,
+	"Wrong magic number for 64-bit exclude bitmap"
+
 ec	EXT2_ET_MAGIC_RESERVED_13,
 	"Wrong magic number --- RESERVED_13"
 
@@ -448,5 +454,14 @@ ec	EXT2_ET_MMP_CHANGE_ABORT,
 
 ec	EXT2_ET_MMP_OPEN_DIRECT,
 	"MMP: open with O_DIRECT failed"
+
+ec	EXT2_ET_BAD_EXCLUDE_TEST,
+	"Illegal block number passed to ext2fs_test_exclude_bitmap"
+
+ec	EXT2_ET_BAD_EXCLUDE_MARK,
+	"Illegal block number passed to ext2fs_mark_exclude_bitmap"
+
+ec	EXT2_ET_BAD_EXCLUDE_UNMARK,
+	"Illegal block number passed to ext2fs_unmark_exclude_bitmap"
 
 	end

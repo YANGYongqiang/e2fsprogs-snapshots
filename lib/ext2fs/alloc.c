@@ -65,6 +65,9 @@ static void check_block_uninit(ext2_filsys fs, ext2fs_block_bitmap map,
 		     (blk < old_desc_blk + old_desc_blocks)) ||
 		    (new_desc_blk && (blk == new_desc_blk)) ||
 		    (blk == ext2fs_block_bitmap_loc(fs, group)) ||
+		    (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    (blk == ext2fs_exclude_bitmap_loc(fs, group))) ||
 		    (blk == ext2fs_inode_bitmap_loc(fs, group)) ||
 		    (blk >= ext2fs_inode_table_loc(fs, group) &&
 		     (blk < ext2fs_inode_table_loc(fs, group)

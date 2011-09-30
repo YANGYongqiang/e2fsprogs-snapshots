@@ -97,6 +97,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	int		rsv_gdt;
 	int		csum_flag;
 	int		bigalloc_flag;
+	int		exclude_flag;
 	int		io_flags;
 	char		*buf = 0;
 	char		c;
@@ -407,6 +408,17 @@ ipg_retry:
 	if (retval)
 		goto cleanup;
 
+	exclude_flag = EXT2_HAS_COMPAT_FEATURE(fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP);
+	if (exclude_flag) {
+		strcpy(buf, "exclude bitmap for ");
+		strcat(buf, fs->device_name);
+		retval = ext2fs_allocate_exclude_bitmap(fs, buf,
+							&fs->exclude_map);
+		if (retval)
+			goto cleanup;
+	}
+
 	strcpy(buf, "inode bitmap for ");
 	strcat(buf, fs->device_name);
 	retval = ext2fs_allocate_inode_bitmap(fs, buf, &fs->inode_map);
@@ -445,6 +457,9 @@ ipg_retry:
 			if (i != fs->group_desc_count - 1)
 				ext2fs_bg_flags_set(fs, i,
 						    EXT2_BG_BLOCK_UNINIT);
+			if (exclude_flag)
+				ext2fs_bg_flags_set(fs, i,
+						    EXT2_BG_EXCLUDE_UNINIT);
 			ext2fs_bg_flags_set(fs, i, EXT2_BG_INODE_UNINIT);
 			numblocks = super->s_inodes_per_group;
 			if (i == 0)
@@ -473,6 +488,7 @@ ipg_retry:
 
 	ext2fs_mark_super_dirty(fs);
 	ext2fs_mark_bb_dirty(fs);
+	ext2fs_mark_eb_dirty(fs);
 	ext2fs_mark_ib_dirty(fs);
 
 	io_channel_set_blksize(fs->io, fs->blocksize);

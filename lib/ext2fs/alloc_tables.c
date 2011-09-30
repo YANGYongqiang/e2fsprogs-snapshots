@@ -87,7 +87,7 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 	errcode_t	retval;
 	blk64_t		group_blk, start_blk, last_blk, new_blk, blk;
 	dgrp_t		last_grp = 0;
-	int		rem_grps = 0, flexbg_size = 0;
+	int		rem_grps = 0, flexbg_size = 0, exclude_bitmap = 0;
 
 	group_blk = ext2fs_group_first_block2(fs, group);
 	last_blk = ext2fs_group_last_block2(fs, group);
@@ -105,8 +105,12 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 		rem_grps = last_grp - group + 1;
 	}
 
+	if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP))
+		exclude_bitmap = 1;
+
 	/*
-	 * Allocate the block and inode bitmaps, if necessary
+	 * Allocate the block, exclude and inode bitmaps, if necessary
 	 */
 	if (fs->stride) {
 		retval = ext2fs_get_free_blocks2(fs, group_blk, last_blk,
@@ -150,13 +154,47 @@ errcode_t ext2fs_allocate_group_table(ext2_filsys fs, dgrp_t group,
 		}
 	}
 
+	if (exclude_bitmap && flexbg_size) {
+		blk64_t prev_block = 0;
+
+		if (group % flexbg_size)
+			prev_block = ext2fs_exclude_bitmap_loc(fs, group - 1) + 1;
+		else
+			prev_block = ext2fs_block_bitmap_loc(fs, group) +
+				flexbg_size;
+		start_blk = flexbg_offset(fs, group, prev_block, bmap,
+					  rem_grps, 1);
+		last_blk = ext2fs_group_last_block2(fs, last_grp);
+	}
+
+	if (exclude_bitmap && !ext2fs_exclude_bitmap_loc(fs, group)) {
+		retval = ext2fs_get_free_blocks2(fs, start_blk, last_blk,
+						1, bmap, &new_blk);
+		if (retval == EXT2_ET_BLOCK_ALLOC_FAIL)
+			retval = ext2fs_get_free_blocks2(fs, group_blk,
+					last_blk, 1, bmap, &new_blk);
+		if (retval)
+			return retval;
+		ext2fs_mark_block_bitmap2(bmap, new_blk);
+		ext2fs_exclude_bitmap_loc_set(fs, group, new_blk);
+		if (flexbg_size) {
+			dgrp_t gr = ext2fs_group_of_blk2(fs, new_blk);
+			ext2fs_bg_free_blocks_count_set(fs, gr,
+				ext2fs_bg_free_blocks_count(fs, gr) - 1);
+			ext2fs_free_blocks_count_add(fs->super, -1);
+			ext2fs_bg_flags_clear(fs, gr, EXT2_BG_BLOCK_UNINIT);
+			ext2fs_group_desc_csum_set(fs, gr);
+		}
+	}
+
 	if (flexbg_size) {
 		blk64_t prev_block = 0;
 		if (group % flexbg_size)
 			prev_block = ext2fs_inode_bitmap_loc(fs, group - 1) + 1;
 		else
-			prev_block = ext2fs_block_bitmap_loc(fs, group) +
+			prev_block = ext2fs_exclude_bitmap_loc(fs, group) +
 				flexbg_size;
+
 		start_blk = flexbg_offset(fs, group, prev_block, bmap,
 					  rem_grps, 1);
 		last_blk = ext2fs_group_last_block2(fs, last_grp);
