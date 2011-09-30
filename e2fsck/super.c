@@ -231,6 +231,12 @@ static int release_orphan_inodes(e2fsck_t ctx)
 	struct problem_context pctx;
 	char *block_buf;
 
+	/* never release orphans when scanning volume with active snapshot */
+	if ((fs->super->s_feature_ro_compat &
+				EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT) &&
+		 fs->super->s_snapshot_inum)
+		return 0;
+
 	if ((ino = fs->super->s_last_orphan) == 0)
 		return 0;
 
@@ -426,6 +432,41 @@ cleanup:
 		ext2fs_free_mem(&dind_buf);
 
  }
+
+/*
+ * This function checks if the file system has snapshots
+ */
+void check_snapshots(e2fsck_t ctx)
+{
+	struct ext2_super_block *sb = ctx->fs->super;
+	struct problem_context	pctx;
+	int cont;
+
+	if (!(sb->s_feature_ro_compat & EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT))
+		/* no snapshots */
+		return;
+
+	if (!sb->s_snapshot_inum)
+		/* no active snapshot */
+		return;
+
+	if ((ctx->options & E2F_OPT_PREEN) ||
+		(ctx->options & E2F_OPT_NO))
+		/* preen and readonly modes are snapshot friendly */
+		return;
+
+	printf(_("%s has snapshots.  "), ctx->filesystem_name);
+	if (!ctx->interactive)
+		fatal_error(ctx, _("Cannot continue, aborting.\n\n"));
+	printf(_("\n\n\007\007\007\007WARNING!!!  "
+	       "Running e2fsck on filesystem with snapshots may\n"
+	       "damage the snapshots.\007\007\007\n\n"));
+	cont = ask_yn(_("Do you really want to continue"), -1);
+	if (!cont) {
+		printf (_("check aborted.\n"));
+		exit (0);
+	}
+}
 
 /*
  * This function checks the dirhash signed/unsigned hint if necessary.

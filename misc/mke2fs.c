@@ -842,6 +842,7 @@ static __u32 ok_features[3] = {
 		EXT4_FEATURE_INCOMPAT_64BIT,
 	/* R/O compat */
 	EXT2_FEATURE_RO_COMPAT_LARGE_FILE|
+		EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT|
 		EXT4_FEATURE_RO_COMPAT_HUGE_FILE|
 		EXT4_FEATURE_RO_COMPAT_DIR_NLINK|
 		EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE|
@@ -1494,6 +1495,8 @@ profile_error:
 				int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
 			/* 3. create exclude bitmap */
 			edit_feature("exclude_bitmap", &fs_param.s_feature_compat);
+			/* 4. avoid rw mount by older kernels */
+			edit_feature("has_snapshot", &fs_param.s_feature_compat);
 			break;
 		default:
 			usage();

@@ -409,6 +409,9 @@ redo_counts:
 		ext2fs_unmark_valid(fs);
 
 	for (i = 0; i < fs->group_desc_count; i++) {
+		if (fs->super->s_flags & EXT2_FLAGS_IS_SNAPSHOT)
+			/* ignore wrong group block counts in snapshot image */
+			break;
 		if (free_array[i] != ext2fs_bg_free_blocks_count(fs, i)) {
 			pctx.group = i;
 			pctx.blk = ext2fs_bg_free_blocks_count(fs, i);
