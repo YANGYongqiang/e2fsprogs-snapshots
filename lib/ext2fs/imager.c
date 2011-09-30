@@ -296,6 +296,17 @@ errcode_t ext2fs_image_bitmap_write(ext2_filsys fs, int fd, int flags)
 		itr = 1;
 		cnt = EXT2_INODES_PER_GROUP(fs->super) * fs->group_desc_count;
 		size = (EXT2_INODES_PER_GROUP(fs->super) / 8);
+	} else if (flags & IMAGER_FLAG_EXCLUDEMAP) {
+		if (!fs->exclude_map) {
+			retval = ext2fs_read_exclude_bitmap(fs);
+			if (retval)
+				return retval;
+		}
+		bmap = fs->exclude_map;
+		err = EXT2_ET_MAGIC_EXCLUDE_BITMAP;
+		itr = fs->super->s_first_data_block;
+		cnt = EXT2_BLOCKS_PER_GROUP(fs->super) * fs->group_desc_count;
+		size = EXT2_BLOCKS_PER_GROUP(fs->super) / 8;
 	} else {
 		if (!fs->block_map) {
 			retval = ext2fs_read_block_bitmap(fs);
@@ -373,6 +384,17 @@ errcode_t ext2fs_image_bitmap_read(ext2_filsys fs, int fd, int flags)
 		itr = 1;
 		cnt = EXT2_INODES_PER_GROUP(fs->super) * fs->group_desc_count;
 		size = (EXT2_INODES_PER_GROUP(fs->super) / 8);
+	} else if (flags & IMAGER_FLAG_EXCLUDEMAP) {
+		if (!fs->exclude_map) {
+			retval = ext2fs_read_exclude_bitmap(fs);
+			if (retval)
+				return retval;
+		}
+		bmap = fs->exclude_map;
+		err = EXT2_ET_MAGIC_EXCLUDE_BITMAP;
+		itr = fs->super->s_first_data_block;
+		cnt = EXT2_BLOCKS_PER_GROUP(fs->super) * fs->group_desc_count;
+		size = EXT2_BLOCKS_PER_GROUP(fs->super) / 8;
 	} else {
 		if (!fs->block_map) {
 			retval = ext2fs_read_block_bitmap(fs);

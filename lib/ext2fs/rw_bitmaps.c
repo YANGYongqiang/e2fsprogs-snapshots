@@ -274,6 +274,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block,
 	ext2fs_free_mem(&buf);
 
 	if (fs->flags & EXT2_FLAG_IMAGE_FILE) {
+		blk64_t	exclude_blk;
 		blk = (fs->image_header->offset_inodemap / fs->blocksize);
 		ino_cnt = fs->super->s_inodes_count;
 		while (inode_nbytes > 0) {
@@ -294,10 +295,25 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block,
 		}
 		blk = (fs->image_header->offset_blockmap /
 		       fs->blocksize);
+		exclude_blk = (fs->image_header->offset_excludemap /
+			       fs->blocksize);
 		blk_cnt = (blk64_t)EXT2_CLUSTERS_PER_GROUP(fs->super) *
 			fs->group_desc_count;
 		while (block_nbytes > 0) {
 			if (do_exclude) {
+				retval = io_channel_read_blk64(fs->image_io,
+					    exclude_blk++, 1, exclude_bitmap);
+				if (retval)
+					goto cleanup;
+				cnt = fs->blocksize << 3;
+				if (cnt > blk_cnt)
+					cnt = blk_cnt;
+				retval = ext2fs_set_exclude_bitmap_range2(
+					       fs->exclude_map,
+					       blk_itr, cnt, exclude_bitmap);
+				if (retval)
+					goto cleanup;
+
 				retval = EXT2_ET_EXCLUDE_BITMAP_READ;
 				goto cleanup;
 			}

@@ -525,6 +525,7 @@ typedef struct ext2_icount *ext2_icount_t;
  */
 #define IMAGER_FLAG_INODEMAP	1
 #define IMAGER_FLAG_SPARSEWRITE	2
+#define IMAGER_FLAG_EXCLUDEMAP	3
 
 /*
  * For checking structure magic numbers...

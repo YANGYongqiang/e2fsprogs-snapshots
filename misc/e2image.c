@@ -187,6 +187,18 @@ static void write_image_file(ext2_filsys fs, int fd)
 		exit(1);
 	}
 
+	if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+					EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP)) {
+		hdr.offset_excludemap = lseek(fd, 0, SEEK_CUR);
+		retval = ext2fs_image_bitmap_write(fs, fd,
+						   IMAGER_FLAG_EXCLUDEMAP);
+		if (retval) {
+			com_err(program_name, retval, _("while writing "
+							"exclude bitmap"));
+			exit(1);
+		}
+	}
+
 	hdr.offset_inodemap = ext2fs_llseek(fd, 0, SEEK_CUR);
 	retval = ext2fs_image_bitmap_write(fs, fd, IMAGER_FLAG_INODEMAP);
 	if (retval) {
@@ -356,6 +368,16 @@ static void mark_table_blocks(ext2_filsys fs)
 			ext2fs_mark_block_bitmap2(meta_block_map,
 				     ext2fs_block_bitmap_loc(fs, i));
 			meta_blocks_count++;
+		}
+
+		/*
+		 * Mark block used for the exclude bitmap
+		 */
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+					EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    ext2fs_exclude_bitmap_loc(fs, i)) {
+			ext2fs_mark_block_bitmap2(meta_block_map,
+				     ext2fs_exclude_bitmap_loc(fs, i));
 		}
 
 		/*
