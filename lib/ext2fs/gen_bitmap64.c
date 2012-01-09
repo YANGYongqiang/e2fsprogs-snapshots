@@ -117,6 +117,9 @@ errcode_t ext2fs_alloc_generic_bmap(ext2_filsys fs, errcode_t magic,
 		bitmap->base_error_code = EXT2_ET_BAD_BLOCK_MARK;
 		bitmap->cluster_bits = fs->cluster_ratio_bits;
 		break;
+	case EXT2_ET_MAGIC_EXCLUDE_BITMAP64:
+		bitmap->base_error_code = EXT2_ET_BAD_EXCLUDE_MARK;
+		break;
 	default:
 		bitmap->base_error_code = EXT2_ET_BAD_GENERIC_MARK;
 	}

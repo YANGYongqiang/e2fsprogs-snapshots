@@ -229,8 +229,9 @@ int main(int argc, char **argv)
 
 	for (i=0; i < fs->group_desc_count; i++) {
 		ext2fs_block_bitmap_loc_set(fs, i, 124);
-		ext2fs_inode_bitmap_loc_set(fs, i, 125);
-		ext2fs_inode_table_loc_set(fs, i, 126);
+		ext2fs_exclude_bitmap_loc_set(fs, i, 125);
+		ext2fs_inode_bitmap_loc_set(fs, i, 126);
+		ext2fs_inode_table_loc_set(fs, i, 127);
 		ext2fs_bg_free_blocks_count_set(fs, i, 31119);
 		ext2fs_bg_free_inodes_count_set(fs, i, 15701);
 		ext2fs_bg_used_dirs_count_set(fs, i, 2);

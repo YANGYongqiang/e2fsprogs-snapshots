@@ -77,6 +77,11 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 		if (retval)
 			goto errout;
 	}
+	if (src->exclude_map) {
+		retval = ext2fs_copy_bitmap(src->exclude_map, &fs->exclude_map);
+		if (retval)
+			goto errout;
+	}
 	if (src->badblocks) {
 		retval = ext2fs_badblocks_copy(src->badblocks, &fs->badblocks);
 		if (retval)

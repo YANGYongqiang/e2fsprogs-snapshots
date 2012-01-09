@@ -116,7 +116,9 @@ typedef struct struct_ext2_filsys *ext2_filsys;
 
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_generic_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_inode_bitmap;
+typedef struct ext2fs_struct_generic_bitmap *ext2fs_exclude_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_block_bitmap;
+typedef struct ext2fs_struct_generic_bitmap *ext2fs_exclude_bitmap;
 
 #define EXT2_FIRST_INODE(s)	EXT2_FIRST_INO(s)
 
@@ -199,6 +201,7 @@ typedef struct ext2_file *ext2_file_t;
 #define EXT2_FLAG_PRINT_PROGRESS	0x40000
 #define EXT2_FLAG_DIRECT_IO		0x80000
 #define EXT2_FLAG_SKIP_MMP		0x100000
+#define EXT2_FLAG_EB_DIRTY		0x200000
 
 /*
  * Special flag in the ext2 inode i_flag field that means that this is
@@ -228,6 +231,7 @@ struct struct_ext2_filsys {
 	unsigned int			inode_blocks_per_group;
 	ext2fs_inode_bitmap		inode_map;
 	ext2fs_block_bitmap		block_map;
+	ext2fs_exclude_bitmap		exclude_map;
 	/* XXX FIXME-64: not 64-bit safe, but not used? */
 	errcode_t (*get_blocks)(ext2_filsys fs, ext2_ino_t ino, blk_t *blocks);
 	errcode_t (*check_directory)(ext2_filsys fs, ext2_ino_t ino);
@@ -546,6 +550,7 @@ typedef struct ext2_icount *ext2_icount_t;
 #define EXT2_LIB_FEATURE_COMPAT_SUPP	(EXT2_FEATURE_COMPAT_DIR_PREALLOC|\
 					 EXT2_FEATURE_COMPAT_IMAGIC_INODES|\
 					 EXT3_FEATURE_COMPAT_HAS_JOURNAL|\
+					 EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP|\
 					 EXT2_FEATURE_COMPAT_RESIZE_INODE|\
 					 EXT2_FEATURE_COMPAT_DIR_INDEX|\
 					 EXT2_FEATURE_COMPAT_EXT_ATTR)
@@ -734,8 +739,10 @@ extern errcode_t ext2fs_copy_bitmap(ext2fs_generic_bitmap src,
 				    ext2fs_generic_bitmap *dest);
 extern errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs);
 extern errcode_t ext2fs_write_block_bitmap (ext2_filsys fs);
+extern errcode_t ext2fs_write_exclude_bitmap (ext2_filsys fs);
 extern errcode_t ext2fs_read_inode_bitmap (ext2_filsys fs);
 extern errcode_t ext2fs_read_block_bitmap(ext2_filsys fs);
+extern errcode_t ext2fs_read_exclude_bitmap (ext2_filsys fs);
 extern errcode_t ext2fs_allocate_block_bitmap(ext2_filsys fs,
 					      const char *descr,
 					      ext2fs_block_bitmap *ret);
@@ -825,6 +832,9 @@ extern struct ext2_group_desc *ext2fs_group_desc(ext2_filsys fs,
 					  dgrp_t group);
 extern blk64_t ext2fs_block_bitmap_loc(ext2_filsys fs, dgrp_t group);
 extern void ext2fs_block_bitmap_loc_set(ext2_filsys fs, dgrp_t group,
+					blk64_t blk);
+extern blk64_t ext2fs_exclude_bitmap_loc(ext2_filsys fs, dgrp_t group);
+extern void ext2fs_block_exclude_loc_set(ext2_filsys fs, dgrp_t group,
 					blk64_t blk);
 extern blk64_t ext2fs_inode_bitmap_loc(ext2_filsys fs, dgrp_t group);
 extern void ext2fs_inode_bitmap_loc_set(ext2_filsys fs, dgrp_t group,
@@ -1620,6 +1630,16 @@ _INLINE_ void ext2fs_mark_bb_dirty(ext2_filsys fs)
 }
 
 /*
+ * Mark the exclude bitmap as dirty
+ */
+_INLINE_ void ext2fs_mark_eb_dirty(ext2_filsys fs)
+{
+	if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP))
+		fs->flags |= EXT2_FLAG_EB_DIRTY | EXT2_FLAG_CHANGED;
+}
+
+/*
  * Check to see if a filesystem's inode bitmap is dirty
  */
 _INLINE_ int ext2fs_test_ib_dirty(ext2_filsys fs)
@@ -1633,6 +1653,14 @@ _INLINE_ int ext2fs_test_ib_dirty(ext2_filsys fs)
 _INLINE_ int ext2fs_test_bb_dirty(ext2_filsys fs)
 {
 	return (fs->flags & EXT2_FLAG_BB_DIRTY);
+}
+
+/*
+ * Check to see if a filesystem's exclude bitmap is dirty
+ */
+_INLINE_ int ext2fs_test_eb_dirty(ext2_filsys fs)
+{
+	return fs->flags & EXT2_FLAG_EB_DIRTY;
 }
 
 /*
