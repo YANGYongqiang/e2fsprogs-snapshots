@@ -159,6 +159,11 @@ struct struct_block_bitmap_info {			/* Used in blockbitmap_com.c */
 	unsigned long group_num;
 };
 
+struct struct_exclude_bitmap_info {			/* Used in excludebitmap_com.c */
+	unsigned long entry_num;
+	unsigned long group_num;
+};
+
 struct struct_inode_bitmap_info {			/* Used in inodebitmap_com.c */
 	unsigned long entry_num;
 	unsigned long group_num;
@@ -394,6 +399,7 @@ extern void type_ext2_group_desc___show (char *command_line);
 extern void type_ext2_group_desc___inode (char *command_line);
 extern void type_ext2_group_desc___gocopy (char *command_line);
 extern void type_ext2_group_desc___blockbitmap (char *command_line);
+extern void type_ext2_group_desc___excludebitmap (char *command_line);
 extern void type_ext2_group_desc___inodebitmap (char *command_line);
 extern void type_ext2_group_desc___setactivecopy (char *command_line);
 
@@ -407,6 +413,17 @@ extern void type_ext2_block_bitmap___allocate (char *command_line);
 extern void type_ext2_block_bitmap___deallocate (char *command_line);
 void allocate_block (long entry_num);
 void deallocate_block (long entry_num);
+
+/* exlcudebitmap_com.c */
+
+extern void type_ext2_exclude_bitmap___show (char *command_line);
+extern void type_ext2_exclude_bitmap___entry (char *command_line);
+extern void type_ext2_exclude_bitmap___next (char *command_line);
+extern void type_ext2_exclude_bitmap___prev (char *command_line);
+extern void type_ext2_exclude_bitmap___allocate (char *command_line);
+extern void type_ext2_exclude_bitmap___deallocate (char *command_line);
+void exclude_block (long entry_num);
+void deexclude_block (long entry_num);
 
 /* inodebitmap_bom.c */
 
