@@ -41,6 +41,7 @@ struct ext2_image_hdr {
 	__u32	offset_super;	/* Byte offset of the sb and descriptors */
 	__u32	offset_inode;	/* Byte offset of the inode table  */
 	__u32	offset_inodemap; /* Byte offset of the inode bitmaps */
+	__u32	offset_excludemap; /* Byte offset of the exclude bitmaps */
 	__u32	offset_blockmap; /* Byte offset of the inode bitmaps */
 	__u32	offset_reserved[8];
 };
