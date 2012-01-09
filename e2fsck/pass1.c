@@ -2478,6 +2478,15 @@ static int process_bad_block(ext2_filsys fs,
 			}
 			return 0;
 		}
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    blk == ext2fs_exclude_bitmap_loc(fs, i)) {
+			if (fix_problem(ctx, PR_1_BB_BAD_BLOCK, pctx)) {
+				ctx->invalid_exclude_bitmap_flag[i]++;
+				ctx->invalid_bitmaps++;
+			}
+			return 0;
+		}
 		if (blk == ext2fs_inode_bitmap_loc(fs, i)) {
 			if (fix_problem(ctx, PR_1_IB_BAD_BLOCK, pctx)) {
 				ctx->invalid_inode_bitmap_flag[i]++;
@@ -2629,6 +2638,13 @@ static void handle_fs_bad_blocks(e2fsck_t ctx)
 					1, &new_blk);
 			ext2fs_block_bitmap_loc_set(fs, i, new_blk);
 		}
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    ctx->invalid_exclude_bitmap_flag[i]) {
+			new_table_block(ctx, first_block, i,
+					_("exclude bitmap"), 1, &new_blk);
+			ext2fs_exclude_bitmap_loc_set(fs, i, new_blk);
+		}
 		if (ctx->invalid_inode_bitmap_flag[i]) {
 			new_blk = ext2fs_inode_bitmap_loc(fs, i);
 			new_table_block(ctx, first_block, i, _("inode bitmap"),
@@ -2703,6 +2719,25 @@ static void mark_table_blocks(e2fsck_t ctx)
 			} else {
 			    ext2fs_mark_block_bitmap2(ctx->block_found_map,
 				     ext2fs_block_bitmap_loc(fs, i));
+		    }
+
+		}
+		/*
+		 * Mark block used for the exclude bitmap
+		 */
+		if (EXT2_HAS_COMPAT_FEATURE(fs->super,
+			EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) &&
+		    ext2fs_exclude_bitmap_loc(fs, i)) {
+			if (ext2fs_test_block_bitmap2(ctx->block_found_map,
+				     ext2fs_exclude_bitmap_loc(fs, i))) {
+				pctx.blk = ext2fs_exclude_bitmap_loc(fs, i);
+				if (fix_problem(ctx, PR_1_EB_CONFLICT, &pctx)) {
+					ctx->invalid_exclude_bitmap_flag[i]++;
+					ctx->invalid_bitmaps++;
+				}
+			} else {
+			    ext2fs_mark_block_bitmap2(ctx->block_found_map,
+				     ext2fs_exclude_bitmap_loc(fs, i));
 		    }
 
 		}

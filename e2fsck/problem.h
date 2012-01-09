@@ -243,6 +243,8 @@ struct problem_context {
 /* Superblock has invalid MMP magic. */
 #define PR_0_MMP_INVALID_MAGIC			0x000043
 
+/* Exclude bitmap not in group */
+#define PR_0_EB_NOT_GROUP			0x000104
 
 /*
  * Pass 1 errors
@@ -550,6 +552,10 @@ struct problem_context {
 
 /* Invalid bad inode */
 #define PR_1_INVALID_BAD_INODE		0x010065
+
+/* Block bitmap conflicts with some other fs block */
+#define PR_1_EB_CONFLICT		0x010101
+
 
 /*
  * Pass 1b errors

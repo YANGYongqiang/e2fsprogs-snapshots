@@ -245,7 +245,8 @@ void e2fsck_read_bitmaps(e2fsck_t ctx)
 		fatal_error(ctx, 0);
 	}
 
-	old_op = ehandler_operation(_("reading inode and block bitmaps"));
+	old_op = ehandler_operation(_("reading inode, exclude and block "
+				      "bitmaps"));
 	retval = ext2fs_read_bitmaps(fs);
 	ehandler_operation(old_op);
 	if (retval) {
@@ -262,12 +263,14 @@ void e2fsck_write_bitmaps(e2fsck_t ctx)
 	errcode_t	retval;
 	const char	*old_op;
 
-	old_op = ehandler_operation(_("writing block and inode bitmaps"));
+	old_op = ehandler_operation(_("writing block, exclude "
+				      "and inode bitmaps"));
 	retval = ext2fs_write_bitmaps(fs);
 	ehandler_operation(old_op);
 	if (retval) {
 		com_err(ctx->program_name, retval,
-			_("while rewriting block and inode bitmaps for %s"),
+			_("while rewriting block, exclude "
+			  "and inode bitmaps for %s"),
 			ctx->device_name);
 		fatal_error(ctx, 0);
 	}
