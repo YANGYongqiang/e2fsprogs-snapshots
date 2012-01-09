@@ -119,6 +119,8 @@ static void print_bg_opts(ext2_filsys fs, dgrp_t i)
 
 	print_bg_opt(bg_flags, EXT2_BG_INODE_UNINIT, "INODE_UNINIT",
  		     &first);
+	print_bg_opt(bg_flags, EXT2_BG_EXCLUDE_UNINIT, "EXCLUDE_UNINIT",
+		     &first);
 	print_bg_opt(bg_flags, EXT2_BG_BLOCK_UNINIT, "BLOCK_UNINIT",
  		     &first);
 	print_bg_opt(bg_flags, EXT2_BG_INODE_ZEROED, "ITABLE_ZEROED",
@@ -148,12 +150,13 @@ static void list_desc (ext2_filsys fs)
 	unsigned long i;
 	blk64_t	first_block, last_block;
 	blk64_t	super_blk, old_desc_blk, new_desc_blk;
-	char *block_bitmap=NULL, *inode_bitmap=NULL;
+	char *block_bitmap = NULL, *exclude_bitmap = NULL, *inode_bitmap = NULL;
 	const char *units = _("blocks");
 	int inode_blocks_per_group, old_desc_blocks, reserved_gdt;
 	int		block_nbytes, inode_nbytes;
 	int has_super;
 	blk64_t		blk_itr = EXT2FS_B2C(fs, fs->super->s_first_data_block);
+	blk64_t		exclude_itr = blk_itr;
 	ext2_ino_t	ino_itr = 1;
 
 	if (EXT2_HAS_RO_COMPAT_FEATURE(fs->super,
@@ -165,6 +168,8 @@ static void list_desc (ext2_filsys fs)
 
 	if (fs->block_map)
 		block_bitmap = malloc(block_nbytes);
+	if (fs->exclude_map)
+		exclude_bitmap = malloc(block_nbytes);
 	if (fs->inode_map)
 		inode_bitmap = malloc(inode_nbytes);
 
@@ -222,6 +227,14 @@ static void list_desc (ext2_filsys fs)
 		print_number(ext2fs_block_bitmap_loc(fs, i));
 		print_bg_rel_offset(fs, ext2fs_block_bitmap_loc(fs, i), 0,
 				    first_block, last_block);
+		if (fs->super->s_feature_compat &
+				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP) {
+			fputs(_(", snapshot bitmap at "), stdout);
+			print_number(ext2fs_exclude_bitmap_loc(fs, i));
+			print_bg_rel_offset(fs,
+					ext2fs_exclude_bitmap_loc(fs, i),
+					0, first_block, last_block);
+		}
 		fputs(_(", Inode bitmap at "), stdout);
 		print_number(ext2fs_inode_bitmap_loc(fs, i));
 		print_bg_rel_offset(fs, ext2fs_inode_bitmap_loc(fs, i), 0,
@@ -252,6 +265,17 @@ static void list_desc (ext2_filsys fs)
 			fputc('\n', stdout);
 			blk_itr += fs->super->s_clusters_per_group;
 		}
+		if (exclude_bitmap) {
+			fputs(_("  Non-snapshot blocks: "), stdout);
+			ext2fs_get_exclude_bitmap_range2(fs->exclude_map,
+				exclude_itr, block_nbytes << 3, exclude_bitmap);
+			print_free(i, block_bitmap,
+				   fs->super->s_clusters_per_group,
+				   fs->super->s_first_data_block,
+				   EXT2FS_CLUSTER_RATIO(fs));
+			fputc('\n', stdout);
+			exclude_itr += fs->super->s_blocks_per_group;
+		}
 		if (inode_bitmap) {
 			fputs(_("  Free inodes: "), stdout);
 			ext2fs_get_inode_bitmap_range2(fs->inode_map,
@@ -264,6 +288,8 @@ static void list_desc (ext2_filsys fs)
 	}
 	if (block_bitmap)
 		free(block_bitmap);
+	if (exclude_bitmap)
+		free(exclude_bitmap);
 	if (inode_bitmap)
 		free(inode_bitmap);
 }
