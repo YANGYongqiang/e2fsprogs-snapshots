@@ -98,6 +98,11 @@ static void open_filesystem(char *device, int open_flags, blk64_t superblock,
 			com_err(device, retval, "while reading inode bitmap");
 			goto errout;
 		}
+		retval = ext2fs_read_exclude_bitmap(current_fs);
+		if (retval) {
+			com_err(device, retval, "while reading exclude bitmap");
+			goto errout;
+		}
 		retval = ext2fs_read_block_bitmap(current_fs);
 		if (retval) {
 			com_err(device, retval, "while reading block bitmap");
@@ -361,12 +366,14 @@ void do_show_super_stats(int argc, char *argv[])
 					      EXT4_FEATURE_RO_COMPAT_GDT_CSUM);
 	for (i = 0; i < current_fs->group_desc_count; i++) {
 		fprintf(out, " Group %2d: block bitmap at %llu, "
+			"exlcude bitmap at %llu, "
 		        "inode bitmap at %llu, "
 		        "inode table at %llu\n"
 		        "           %u free %s%s, "
 		        "%u free %s, "
 		        "%u used %s%s",
 		        i, ext2fs_block_bitmap_loc(current_fs, i),
+			ext2fs_exclude_bitmap_loc(current_fs, i),
 		        ext2fs_inode_bitmap_loc(current_fs, i),
 			ext2fs_inode_table_loc(current_fs, i),
 		        ext2fs_bg_free_blocks_count(current_fs, i), units,
@@ -384,10 +391,12 @@ void do_show_super_stats(int argc, char *argv[])
 				ext2fs_bg_itable_unused(current_fs, i) != 1 ?
 				"inodes" : "inode");
 		first = 1;
-		print_bg_opts(current_fs, i, EXT2_BG_INODE_UNINIT, "Inode not init",
-			      &first, out);
-		print_bg_opts(current_fs, i, EXT2_BG_BLOCK_UNINIT, "Block not init",
-			      &first, out);
+		print_bg_opts(current_fs, i, EXT2_BG_INODE_UNINIT,
+			      "Inode not init", &first, out);
+		print_bg_opts(current_fs, i, EXT2_BG_EXCLUDE_UNINIT,
+			      "Exclude not init", &first, out);
+		print_bg_opts(current_fs, i, EXT2_BG_BLOCK_UNINIT,
+			      "Block not init", &first, out);
 		if (gdt_csum) {
 			fprintf(out, "%sChecksum 0x%04x",
 				first ? "           [":", ", ext2fs_bg_checksum(current_fs, i));
@@ -1088,6 +1097,73 @@ void do_testb(int argc, char *argv[])
 		block++;
 	}
 }
+
+#ifndef READ_ONLY
+void do_freee(int argc, char *argv[])
+{
+	blk64_t block;
+	blk64_t count = 1;
+
+	if (!EXT2_HAS_COMPAT_FEATURE(current_fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP))
+		return;
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	if (check_fs_read_write(argv[0]))
+		return;
+	while (count-- > 0) {
+		if (!ext2fs_test_exclude_bitmap2(current_fs->exclude_map,
+						 block))
+			com_err(argv[0], 0, "Warning: block %llu already "
+				"not excluded", block);
+		ext2fs_unmark_exclude_bitmap2(current_fs->exclude_map, block);
+		block++;
+	}
+	ext2fs_mark_eb_dirty(current_fs);
+}
+
+void do_sete(int argc, char *argv[])
+{
+	blk64_t block;
+	blk64_t count = 1;
+
+	if (!EXT2_HAS_COMPAT_FEATURE(current_fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP))
+		return;
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	if (check_fs_read_write(argv[0]))
+		return;
+	while (count-- > 0) {
+		if (ext2fs_test_exclude_bitmap2(current_fs->exclude_map, block))
+			com_err(argv[0], 0, "Warning: block %llu already "
+				"excluded", block);
+		ext2fs_mark_exclude_bitmap2(current_fs->exclude_map, block);
+		block++;
+	}
+	ext2fs_mark_eb_dirty(current_fs);
+}
+#endif
+
+void do_teste(int argc, char *argv[])
+{
+	blk64_t block;
+	blk64_t count = 1;
+
+	if (!EXT2_HAS_COMPAT_FEATURE(current_fs->super,
+				    EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP))
+		return;
+	if (common_block_args_process(argc, argv, &block, &count))
+		return;
+	while (count-- > 0) {
+		if (ext2fs_test_exclude_bitmap2(current_fs->exclude_map, block))
+			printf("Block %llu marked excluded\n", block);
+		else
+			printf("Block %llu not excluded\n", block);
+		block++;
+	}
+}
+
 
 #ifndef READ_ONLY
 static void modify_u8(char *com, const char *prompt,
