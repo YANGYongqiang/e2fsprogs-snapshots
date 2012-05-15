@@ -30,6 +30,7 @@
 
 
 int fgetsnapflags(const char * name, unsigned long * flags);
+int fsetsnapflags(const char * name, unsigned long flags);
 int fgetflags (const char * name, unsigned long * flags);
 int fgetversion (const char * name, unsigned long * version);
 int fsetflags (const char * name, unsigned long flags);

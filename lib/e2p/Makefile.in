@@ -17,14 +17,14 @@ INSTALL = @INSTALL@
 all::	e2p.pc
 
 OBJS=		feature.o fgetflags.o fsetflags.o fgetversion.o fsetversion.o \
-		fgetsnapflags.o \
+		fgetsnapflags.o fsetsnapflags.o \
 		getflags.o getversion.o hashstr.o iod.o ls.o mntopts.o \
 		parse_num.o pe.o pf.o ps.o setflags.o setversion.o uuid.o \
 		ostype.o percent.o
 
 SRCS=		$(srcdir)/feature.c $(srcdir)/fgetflags.c \
 		$(srcdir)/fsetflags.c $(srcdir)/fgetversion.c \
-		$(srcdir)/fgetsnapflags.c \
+		$(srcdir)/fgetsnapflags.c $(srcdir)/fsetsnapflags.c \
 		$(srcdir)/fsetversion.c $(srcdir)/getflags.c \
 		$(srcdir)/getversion.c $(srcdir)/hashstr.c $(srcdir)/iod.c \
 		$(srcdir)/ls.c $(srcdir)/mntopts.c $(srcdir)/parse_num.c \
@@ -134,6 +134,9 @@ fgetsnapflags.o: $(srcdir)/fgetsnapflags.c $(srcdir)/e2p.h \
  $(top_builddir)/lib/dirpaths.h $(srcdir)/e2p.h \
  $(top_srcdir)/lib/ext2fs/ext2_fs.h $(top_builddir)/lib/ext2fs/ext2_types.h
 fsetflags.o: $(srcdir)/fsetflags.c $(top_builddir)/lib/config.h \
+ $(top_builddir)/lib/dirpaths.h $(srcdir)/e2p.h \
+ $(top_srcdir)/lib/ext2fs/ext2_fs.h $(top_builddir)/lib/ext2fs/ext2_types.h
+fsetsnapflags.o: $(srcdir)/fsetsnapflags.c $(srcdir)/e2p.h \
  $(top_builddir)/lib/dirpaths.h $(srcdir)/e2p.h \
  $(top_srcdir)/lib/ext2fs/ext2_fs.h $(top_builddir)/lib/ext2fs/ext2_types.h
 fgetversion.o: $(srcdir)/fgetversion.c $(top_builddir)/lib/config.h \
