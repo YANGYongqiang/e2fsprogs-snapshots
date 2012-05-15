@@ -49,16 +49,32 @@ static struct flags_name flags_array[] = {
 	{ EXT2_TOPDIR_FL, "T", "Top_of_Directory_Hierarchies" },
 	{ EXT4_EXTENTS_FL, "e", "Extents" },
 	{ EXT4_HUGE_FILE_FL, "h", "Huge_file" },
+	{ EXT4_SNAPFILE_FL, "x", "Snapshot_File" },
+	{ 0, NULL, NULL }
+};
+
+/* Snapshot dynamic state flags */
+static struct flags_name snapshot_flags_array[] = {
+	{ 1UL<<EXT4_SNAPSHOT_LIST, "S", "on_liSt" },
+	{ 1UL<<EXT4_SNAPSHOT_ENABLED, "n", "eNabled" },
+	{ 1UL<<EXT4_SNAPSHOT_ACTIVE, "a", "Active" },
+	{ 1UL<<EXT4_SNAPSHOT_INUSE, "p", "inuse_by_Previous" },
+	{ 1UL<<EXT4_SNAPSHOT_DELETED, "s", "Deleted" },
+	{ 1UL<<EXT4_SNAPSHOT_SHRUNK, "h", "sHrunk" },
+	{ 1UL<<EXT4_SNAPSHOT_OPEN, "o", "mOunted" },
+	{ 1UL<<EXT4_SNAPSHOT_TAGGED, "t", "Tagged" },
 	{ 0, NULL, NULL }
 };
 
 void print_flags (FILE * f, unsigned long flags, unsigned options)
 {
+	struct flags_name *array = ((options & PFOPT_SNAPSHOT) ?
+					snapshot_flags_array : flags_array);
 	int long_opt = (options & PFOPT_LONG);
 	struct flags_name *fp;
 	int	first = 1;
 
-	for (fp = flags_array; fp->flag != 0; fp++) {
+	for (fp = array; fp->flag != 0; fp++) {
 		if (flags & fp->flag) {
 			if (long_opt) {
 				if (first)

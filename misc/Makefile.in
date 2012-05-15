@@ -36,7 +36,7 @@ SMANPAGES=	tune2fs.8 mklost+found.8 mke2fs.8 dumpe2fs.8 badblocks.8 \
 FMANPAGES=	mke2fs.conf.5
 
 UPROGS=		chattr lsattr @UUID_CMT@ uuidgen
-UMANPAGES=	chattr.1 lsattr.1 @UUID_CMT@ uuidgen.1
+UMANPAGES=	chattr.1 lsattr.1 lssnap.1 @UUID_CMT@ uuidgen.1
 
 LPROGS=		@E2INITRD_PROG@
 
@@ -394,6 +394,10 @@ lsattr.1: $(DEP_SUBSTITUTE) $(srcdir)/lsattr.1.in
 	$(E) "	SUBST $@"
 	$(Q) $(SUBSTITUTE_UPTIME) $(srcdir)/lsattr.1.in lsattr.1 
 
+lssnap.1: $(DEP_SUBSTITUTE) $(srcdir)/lssnap.1.in
+	$(E) "	SUBST $@"
+	$(Q) $(SUBSTITUTE_UPTIME) $(srcdir)/lssnap.1.in lssnap.1
+
 uuidgen.1: $(DEP_SUBSTITUTE) $(srcdir)/uuidgen.1.in 
 	$(E) "	SUBST $@"
 	$(Q) $(SUBSTITUTE_UPTIME) $(srcdir)/uuidgen.1.in uuidgen.1 
@@ -447,6 +451,8 @@ install: all $(SMANPAGES) $(UMANPAGES) installdirs
 		echo "	INSTALL $(libdir)/$$i"; \
 		$(INSTALL_PROGRAM) $$i $(DESTDIR)$(libdir)/$$i; \
 	done
+	$(Q) $(INSTALL_PROGRAM) lsattr \
+		$(DESTDIR)$(root_sbindir)/lssnap
 	$(Q) for i in $(SMANPAGES); do \
 		for j in $(COMPRESS_EXT); do \
 			$(RM) -f $(DESTDIR)$(man8dir)/$$i.$$j; \
@@ -541,7 +547,7 @@ uninstall:
 	for i in $(UMANPAGES); do \
 		$(RM) -f $(DESTDIR)$(man1dir)/$$i; \
 	done
-	for i in $(FINDFS_LINK) e2label ; do \
+	for i in $(FINDFS_LINK) e2label lssnap ; do \
 		$(RM) -f $(DESTDIR)$(root_sbindir)/$$i; \
 	done
 	for i in $(FMANPAGES); do \
