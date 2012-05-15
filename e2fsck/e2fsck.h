@@ -161,6 +161,7 @@ struct resource_track {
 #define E2F_OPT_FRAGCHECK	0x0800
 #define E2F_OPT_JOURNAL_ONLY	0x1000 /* only replay the journal */
 #define E2F_OPT_DISCARD		0x2000
+#define E2F_OPT_CLEAR_SNAPSHOTS	0x4000 /* Delete all snapshots */
 
 /*
  * E2fsck flags
@@ -183,6 +184,7 @@ struct resource_track {
 #define E2F_FLAG_GOT_DEVSIZE	0x0800 /* Device size has been fetched */
 #define E2F_FLAG_EXITING	0x1000 /* E2fsck exiting due to errors */
 #define E2F_FLAG_TIME_INSANE	0x2000 /* Time is insane */
+#define E2F_FLAG_CLEAR_SNAPSHOTS	0x8000 /* Clear all snapshot inodes */
 
 #define E2F_RESET_FLAGS (E2F_FLAG_TIME_INSANE)
 

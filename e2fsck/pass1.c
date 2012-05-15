@@ -1985,6 +1985,13 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 	pctx->ino = ino;
 	pctx->errcode = 0;
 
+	if (pb.snapfile && (ctx->flags & E2F_FLAG_CLEAR_SNAPSHOTS)) {
+		/* discarding all snapshot files */
+		e2fsck_clear_inode(ctx, ino, inode, E2F_FLAG_RESTART,
+				   "check_blocks");
+		return;
+	}
+
 	extent_fs = (ctx->fs->super->s_feature_incompat &
                      EXT3_FEATURE_INCOMPAT_EXTENTS);
 

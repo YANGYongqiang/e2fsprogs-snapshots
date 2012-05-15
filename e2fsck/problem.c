@@ -42,7 +42,8 @@
 #define PROMPT_CLEAR_HTREE 18
 #define PROMPT_RECREATE 19
 #define PROMPT_TERMINATE_LIST 20
-#define PROMPT_NULL	21
+#define PROMPT_CLEAR_SNAPSHOTS 21
+#define PROMPT_NULL	22
 
 /*
  * These are the prompts which are used to ask the user if they want
@@ -70,7 +71,8 @@ static const char *prompt[] = {
 	N_("Clear HTree index"),/* 18 */
 	N_("Recreate"),		/* 19 */
 	N_("Terminate list"),	/* 20 */
-	"",			/* 21 */
+	N_("Clear all snapshots"),	/* 21 */
+	"",			/* 22 */
 };
 
 /*
@@ -99,7 +101,8 @@ static const char *preen_msg[] = {
 	N_("HTREE INDEX CLEARED"),/* 18 */
 	N_("WILL RECREATE"),	/* 19 */
 	N_("LIST TERMINATED"),	/* 20 */
-	"",			/* 21 */
+	N_("SNAPSHOTS CLEARED"),	/* 21 */
+	"",			/* 22 */
 };
 
 static struct e2fsck_problem problem_table[] = {
@@ -340,6 +343,17 @@ static struct e2fsck_problem problem_table[] = {
 	{ PR_0_BAD_SNAPSHOT_LIST,
 	  N_("Bad @i found on snapshot list.  "),
 	  PROMPT_TERMINATE_LIST, PR_PREEN_OK },
+ 
+	/* Corrupted snapshot */
+	{ PR_0_BAD_SNAPSHOT,
+	  N_("@f may contain corrupted snapshots.\n"
+	     "This version of e2fsck does not support fixing snapshots.\n"),
+	  PROMPT_CLEAR_SNAPSHOTS, 0 },
+
+	/* Clearing all snapshot */
+	{ PR_0_CLEAR_SNAPSHOTS,
+	  N_("Snapshots may be damaged by repair.  "),
+	  PROMPT_CLEAR_SNAPSHOTS, PR_PREEN_OK },
 
 	/* Last mount time is in the future */
 	{ PR_0_FUTURE_SB_LAST_MOUNT,
