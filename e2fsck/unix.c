@@ -1646,6 +1646,7 @@ no_journal:
 				sb->s_lastcheck = ctx->now;
 			memset(((char *) sb) + EXT4_S_ERR_START, 0,
 			       EXT4_S_ERR_LEN);
+			e2fsck_clear_message_buffer(ctx);
 			ext2fs_mark_super_dirty(fs);
 		}
 	}

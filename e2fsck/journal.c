@@ -840,6 +840,22 @@ static errcode_t recover_ext3_journal(e2fsck_t ctx)
 
 
 	if (journal->j_superblock->s_errno) {
+		/* journal message buffer at journal super block + 1K */
+		char *buf = ((char *) journal->j_superblock) +
+			SUPERBLOCK_OFFSET;
+		int n, len = ctx->fs->blocksize - MSGBUF_OFFSET;
+
+		if (len >= MSGBUF_OFFSET && *buf) {
+			/* keep it simple - write in MSGBUF_OFFSET blocksize */
+			io_channel_set_blksize(ctx->fs->io, MSGBUF_OFFSET);
+			n = len / MSGBUF_OFFSET;
+			/* write journal message buffer to super block + 2K */
+			retval = io_channel_write_blk(ctx->fs->io, 1, n, buf);
+			io_channel_set_blksize(ctx->fs->io, ctx->fs->blocksize);
+			/* clear journal message buffer */
+			memset(buf, 0, len);
+		}
+
 		ctx->fs->super->s_state |= EXT2_ERROR_FS;
 		ext2fs_mark_super_dirty(ctx->fs);
 		journal->j_superblock->s_errno = 0;
