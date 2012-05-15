@@ -456,7 +456,7 @@ struct ext2_inode_large {
 #define i_dir_acl	i_size_high
 
 #if defined(__KERNEL__) || defined(__linux__)
-#define i_reserved1	osd1.linux1.l_i_reserved1
+#define i_next_snapshot	osd1.linux1.l_i_version
 #define i_frag		osd2.linux2.l_i_frag
 #define i_fsize		osd2.linux2.l_i_fsize
 #define i_uid_low	i_uid
