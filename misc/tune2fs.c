@@ -139,6 +139,7 @@ static __u32 ok_features[3] = {
 		EXT4_FEATURE_INCOMPAT_MMP,
 	/* R/O compat */
 	EXT2_FEATURE_RO_COMPAT_LARGE_FILE |
+		EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT|
 		EXT4_FEATURE_RO_COMPAT_HUGE_FILE|
 		EXT4_FEATURE_RO_COMPAT_DIR_NLINK|
 		EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE|
@@ -159,6 +160,7 @@ static __u32 clear_ok_features[3] = {
 		EXT4_FEATURE_INCOMPAT_MMP,
 	/* R/O compat */
 	EXT2_FEATURE_RO_COMPAT_LARGE_FILE |
+		EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT|
 		EXT4_FEATURE_RO_COMPAT_HUGE_FILE|
 		EXT4_FEATURE_RO_COMPAT_DIR_NLINK|
 		EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE|
@@ -493,6 +495,19 @@ static int update_feature_set(ext2_filsys fs, char *features)
 	old_features[E2P_FEATURE_INCOMPAT] = sb->s_feature_incompat;
 	old_features[E2P_FEATURE_RO_INCOMPAT] = sb->s_feature_ro_compat;
 
+	/* disallow changing features when filesystem has snapshots */
+	if (sb->s_feature_ro_compat &
+		EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT) {
+		ok_features[E2P_FEATURE_COMPAT] = 0;
+		ok_features[E2P_FEATURE_INCOMPAT] = 0;
+		ok_features[E2P_FEATURE_RO_INCOMPAT] =
+			EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT;
+		clear_ok_features[E2P_FEATURE_COMPAT] = 0;
+		clear_ok_features[E2P_FEATURE_INCOMPAT] = 0;
+		clear_ok_features[E2P_FEATURE_RO_INCOMPAT] =
+			EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT;
+	}
+
 	if (e2p_edit_feature2(features, &sb->s_feature_compat,
 			      ok_features, clear_ok_features,
 			      &type_err, &mask_err)) {
@@ -500,6 +515,12 @@ static int update_feature_set(ext2_filsys fs, char *features)
 			fprintf(stderr,
 				_("Invalid filesystem option set: %s\n"),
 				features);
+		else if (old_features[E2P_FEATURE_RO_INCOMPAT] &
+				EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT)
+			fputs(_("The filesystem has snapshots.  "
+						"Please clear the has_snapshot flag\n"
+						"before clearing/setting other filesystem flags.\n"),
+					stderr);
 		else if (type_err & E2P_FEATURE_NEGATE_FLAG)
 			fprintf(stderr, _("Clearing filesystem feature '%s' "
 					  "not supported.\n"),
@@ -623,6 +644,35 @@ mmp_error:
 	if (FEATURE_ON_SAFE(E2P_FEATURE_COMPAT,
 				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP)) {
 		add_exclude_bitmaps(fs);
+	}
+
+	if (FEATURE_ON_SAFE(E2P_FEATURE_RO_INCOMPAT,
+				EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT)) {
+		int big_journal = 0;
+
+		if ((sb->s_feature_compat &
+		    EXT3_FEATURE_COMPAT_HAS_JOURNAL)) {
+			/* Check for existing big journal */
+			big_journal = (ext2fs_check_journal_size(fs) >=
+					EXT4_MIN_BIG_JOURNAL_BLOCKS);
+		} else if (!journal_size || journal_size == -1) {
+			/* Create a big journal for snapshots */
+			journal_size = -EXT4_MAX_COW_CREDITS;
+			big_journal = 1;
+		}
+
+		if (!big_journal)
+			fputs(_("Warning: journal size is not big enough.\n"
+				"For best operation of snapshots, re-create "
+				"the journal with '-J big' before setting the "
+				"has_snapshot flag.\n"), stderr);
+
+		if (!(sb->s_feature_compat &
+				EXT2_FEATURE_COMPAT_EXCLUDE_BITMAP)) {
+			fputs(_("The exclude_bitmap feature is required for "
+				"setting the has_snapshot flag.\n"), stderr);
+			exit(1);
+		}
 	}
 
 	if (FEATURE_ON(E2P_FEATURE_COMPAT, EXT2_FEATURE_COMPAT_DIR_INDEX)) {
