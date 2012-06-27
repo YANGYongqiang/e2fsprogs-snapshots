@@ -35,7 +35,7 @@ SMANPAGES=	tune2fs.8 mklost+found.8 mke2fs.8 dumpe2fs.8 badblocks.8 \
 			$(UUIDD_MAN) $(E4DEFRAG_MAN) @FSCK_MAN@
 FMANPAGES=	mke2fs.conf.5
 
-UPROGS=		chattr lsattr @UUID_CMT@ uuidgen
+UPROGS=		chattr lsattr @UUID_CMT@ uuidgen e4snapclone
 UMANPAGES=	chattr.1 lsattr.1 chsnap.1 lssnap.1 @UUID_CMT@ uuidgen.1
 
 LPROGS=		@E2INITRD_PROG@
@@ -45,6 +45,7 @@ MKLPF_OBJS=	mklost+found.o
 MKE2FS_OBJS=	mke2fs.o util.o profile.o prof_err.o default_profile.o
 CHATTR_OBJS=	chattr.o
 LSATTR_OBJS=	lsattr.o
+E4SNAPCLONE_OBJS= e4snapclone.o 
 UUIDGEN_OBJS=	uuidgen.o
 UUIDD_OBJS=	uuidd.o
 DUMPE2FS_OBJS=	dumpe2fs.o
@@ -251,6 +252,10 @@ chattr: $(CHATTR_OBJS) $(DEPLIBS_E2P)
 lsattr: $(LSATTR_OBJS) $(DEPLIBS_E2P)
 	$(E) "	LD $@"
 	$(Q) $(CC) $(ALL_LDFLAGS) -o lsattr $(LSATTR_OBJS) $(LIBS_E2P) $(LIBINTL)
+
+e4snapclone: $(E4SNAPCLONE_OBJS) $(DEPLIBS_E2P)
+	$(E) "	LD $@"
+	$(Q) $(CC) $(ALL_LDFLAGS) -o e4snapclone $(E4SNAPCLONE_OBJS) $(LIBS_E2P) $(LIBINTL)
 
 uuidgen: $(UUIDGEN_OBJS) $(DEPLIBUUID)
 	$(E) "	LD $@"

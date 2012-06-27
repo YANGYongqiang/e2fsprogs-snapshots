@@ -85,6 +85,7 @@ static int list_attributes (const char * name)
 		ret = fgetsnapflags (name, &flags);
 	else
 		ret = fgetflags (name, &flags);
+	printf("%p\n", flags);
 	if (ret == -1) {
 		com_err (program_name, errno, _("While reading flags on %s"),
 			 name);

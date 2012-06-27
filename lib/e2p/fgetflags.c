@@ -77,6 +77,7 @@ int fgetflags (const char * name, unsigned long * flags)
 	if (fd == -1)
 		return -1;
 	r = ioctl (fd, EXT2_IOC_GETFLAGS, &f);
+	printf("get flag %p\n", f);
 	if (r == -1)
 		save_errno = errno;
 	*flags = f;

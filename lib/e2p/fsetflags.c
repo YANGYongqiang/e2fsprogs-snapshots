@@ -83,6 +83,7 @@ int fsetflags (const char * name, unsigned long flags)
 	if (fd == -1)
 		return -1;
 	f = (int) flags;
+	printf("%p\n", f);
 	r = ioctl (fd, EXT2_IOC_SETFLAGS, &f);
 	if (r == -1)
 		save_errno = errno;

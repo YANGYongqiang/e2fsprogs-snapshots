@@ -23,6 +23,8 @@ TUNEFS=tune2fs
 LSSNAP="lssnap"
 CHSNAP="chsnap"
 CHATTR=chattr
+ROOTDEV=/dev/sdc1
+ROOTMNT=/mnt/test/next4
 
 # override generic e2fs progs with installed e2fs.$FSTYPE progs in /sbin fodler
 # and override those with private built e2fs.$FSTYPE progs in ./bin folder
@@ -156,6 +158,10 @@ fi
 if [ -z $SNAPDIR ] ; then
 	# directory inside $FSTYPE filesystem to store snapshot files
 	SNAPDIR=$ROOTMNT/.snapshots
+fi
+if [ -z $CLONEDIR ] ; then
+	# directory inside $FSTYPE filesystem to store snapclone files
+	CLONEDIR=$ROOTMNT/.snapclones
 fi
 if [ -z $SNAPMNT ] ; then
 	# directory prefix for snapshot mount points
@@ -316,7 +322,30 @@ case "$1" in
 	fi
 	$LSSNAP -l $SNAPDIR
 	;;
+  clone)
+	if [ $1_$2 = $1_help ] ; then
+		echo "clone: clone a snapshot which can be mount writable."
+		echo "usage: $SCRIPT_NAME clone [[$FSTYPE-mount@]snapshot-name] (default=$FSTYPE-mount@GMT-date)"
+		exit 0
 
+	fi
+
+	mkdir -p $CLONEDIR || exit 1
+	$CHATTR +dC $CLONEDIR || exit 1
+	if [ -z $s ] ; then
+		# default snapclone-name is the <date-time> in shadow copy format
+		s=$( date -u +GMT-%Y.%m.%d-%H.%M.%S )
+		S=$ROOTMNT@$s
+	fi
+	if [ -f $CLONEDIR/$s ] ; then
+		echo "$0 clone: snapclone $S already exists!"
+		exit 1
+	fi
+	touch $CLONEDIR/$s 2> /dev/null
+	sync
+	echo snapclone $S was created
+	echo .
+	;;
 # Snapshot control commands (single snapshot)
   take)
 	if [ $1_$2 = $1_help ] ; then
@@ -749,6 +778,7 @@ case "$1" in
 	echo
 	echo "$FSTYPE snapshot commands:"
 	echo "usage: $SCRIPT_NAME take [[$FSTYPE-mount@]snapshot-name] (default=$FSTYPE-mount@GMT-date)"
+	echo "usage: $SCRIPT_NAME clone [[$FSTYPE-mount@]snapshot-name] (default=$FSTYPE-mount@GMT-date)"
 	echo "usage: $SCRIPT_NAME {mount|umount|delete|remove|fsck|dump} [$FSTYPE-mount@]<snapshot-name>"
 	echo
 	echo "<snapshot-name> parameter may be just the name of the snapshot or may be"

@@ -315,6 +315,7 @@ struct ext2_dx_countlimit {
 #define EXT4_SNAPFILE_FL		0x01000000  /* Inode is a snapshot */
 #define EXT4_SNAPFILE_DELETED_FL	0x04000000  /* Snapshot is being deleted */
 #define EXT4_SNAPFILE_SHRUNK_FL		0x08000000  /* Snapshot shrink has completed */
+#define EXT4_SNAPCLONE_FL		0x10000000  /* Inode is a snapclone */
 #define EXT2_RESERVED_FL		0x80000000 /* reserved for ext2 lib */
 
 #define EXT2_FL_USER_VISIBLE		0x004BDFFF /* User visible flags */
@@ -361,6 +362,7 @@ struct ext4_new_group_input {
 #define EXT4_IOC_RESIZE_FS		_IOW('f', 16, __u64)
 #define EXT2_IOC_GETSNAPFLAGS		_IOR('f', 13, long)
 #define EXT2_IOC_SETSNAPFLAGS		_IOW('f', 14, long)
+#define EXT2_IOC_SNAPCLONE		_IOW('f', 17, long)
 
 /*
  * Snapshot status/control flags for lssnap/chsnap.
