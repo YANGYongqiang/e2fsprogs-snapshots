@@ -562,6 +562,17 @@ _INLINE_ int ext2fs_test_block_bitmap2(ext2fs_block_bitmap bitmap,
 					block);
 }
 
+_INLINE_ int ext2fs_count_zeros_block_bitmap2(ext2fs_block_bitmap bitmap,
+					blk64_t start, blk64_t range)
+{
+	int count = 0;
+	blk64_t i = start;
+	for (; i < start + range; i++) {
+		count += !ext2fs_test_block_bitmap2(bitmap, i);
+	}
+	return count;
+}
+
 _INLINE_ int ext2fs_mark_exclude_bitmap2(ext2fs_exclude_bitmap bitmap,
 				       blk64_t block)
 {

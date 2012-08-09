@@ -77,6 +77,38 @@ errcode_t ext2fs_open(const char *name, int flags, int superblock,
 }
 
 /*
+ * ext2fs_snapshot_fix_group_counters fixes group counters in snapshot.
+ */
+int ext2fs_snapshot_fix_group_counters(ext2_filsys fs)
+{
+	dgrp_t group;
+	int retval;
+	retval = ext2fs_read_bitmaps(fs);
+	if (retval)
+		return retval;
+
+	if (!(fs->super->s_flags & EXT2_FLAGS_IS_SNAPSHOT ||
+	      fs->super->s_flags & EXT2_FLAGS_IS_SNAPCLONE))
+		return 0;
+
+	for (group = 0; group < fs->group_desc_count; group++) {
+		if (ext2fs_bg_flags_test(fs, group, EXT2_SNAP_BG_UNFIXED)) {
+			int free_clusters;
+			int range = EXT2_BLOCKS_PER_GROUP(fs->super);
+			blk64_t blk = ext2fs_group_first_block(fs, group);
+			range = ext2fs_blocks_count(fs->super) - blk < range ?
+				ext2fs_blocks_count(fs->super) - blk : range;
+			free_clusters = ext2fs_count_zeros_block_bitmap2(fs->block_map, blk,
+							 range);
+			ext2fs_bg_free_blocks_count_set(fs, group, free_clusters);
+			ext2fs_bg_flags_clear(fs, group, EXT2_SNAP_BG_UNFIXED);
+			ext2fs_group_desc_csum_set(fs, group);
+		}
+	}
+	return 0;
+}
+
+/*
  *  Note: if superblock is non-zero, block-size must also be non-zero.
  * 	Superblock and block_size can be zero to use the default size.
  *
@@ -364,6 +396,9 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 		dest += fs->blocksize;
 	}
 
+	retval = ext2fs_snapshot_fix_group_counters(fs);
+	if (retval)
+		goto cleanup;
 	fs->stride = fs->super->s_raid_stride;
 
 	/*

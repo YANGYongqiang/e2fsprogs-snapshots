@@ -1206,6 +1206,7 @@ restart:
 			ext2fs_free(fs);
 			fs = NULL;
 		}
+		printf("retval2:%d\n", retval2);
 		if (!fs || (fs->group_desc_count > 1)) {
 			printf(_("%s: %s trying backup blocks...\n"),
 			       ctx->program_name,
