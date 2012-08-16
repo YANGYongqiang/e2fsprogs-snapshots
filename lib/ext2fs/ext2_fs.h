@@ -195,6 +195,7 @@ struct ext4_group_desc
 #define EXT2_BG_BLOCK_UNINIT	0x0002 /* Block bitmap not initialized */
 #define EXT2_BG_INODE_ZEROED	0x0004 /* On-disk itable initialized to zero */
 #define EXT2_BG_EXCLUDE_UNINIT	0x0008 /* Exclude bitmap not initialized */
+#define EXT2_SNAP_BG_UNFIXED	0x0010 /* Blocks used by snapshos is not excluded */
 
 /*
  * Data structures used by the directory indexing feature
@@ -529,6 +530,7 @@ struct ext2_inode_large {
 #define EXT2_FLAGS_IS_SNAPSHOT		0x0010	/* This is a snapshot image */
 #define EXT2_FLAGS_FIX_SNAPSHOT		0x0020	/* Snapshot inodes corrupted */
 #define EXT2_FLAGS_FIX_EXCLUDE		0x0040	/* Exclude bitmaps corrupted */
+#define EXT2_FLAGS_IS_SNAPCLONE		0x0080	/* This is a snapclone image */
 
 /*
  * Mount flags

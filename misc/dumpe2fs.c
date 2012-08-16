@@ -116,7 +116,7 @@ static void print_bg_opts(ext2_filsys fs, dgrp_t i)
 
 	if (fs->super->s_feature_ro_compat & EXT4_FEATURE_RO_COMPAT_GDT_CSUM)
 		bg_flags = ext2fs_bg_flags(fs, i);
-
+	printf("bg_flags %x\n", bg_flags);
 	print_bg_opt(bg_flags, EXT2_BG_INODE_UNINIT, "INODE_UNINIT",
  		     &first);
 	print_bg_opt(bg_flags, EXT2_BG_EXCLUDE_UNINIT, "EXCLUDE_UNINIT",
@@ -124,6 +124,8 @@ static void print_bg_opts(ext2_filsys fs, dgrp_t i)
 	print_bg_opt(bg_flags, EXT2_BG_BLOCK_UNINIT, "BLOCK_UNINIT",
  		     &first);
 	print_bg_opt(bg_flags, EXT2_BG_INODE_ZEROED, "ITABLE_ZEROED",
+ 		     &first);
+	print_bg_opt(bg_flags, EXT2_SNAP_BG_UNFIXED, "SNAP_BG_UNFIXED",
  		     &first);
 	if (!first)
 		fputc(']', stdout);

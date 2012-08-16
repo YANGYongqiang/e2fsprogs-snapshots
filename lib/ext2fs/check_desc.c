@@ -62,6 +62,7 @@ errcode_t ext2fs_check_desc(ext2_filsys fs)
 		blk = ext2fs_block_bitmap_loc(fs, i);
 		if (blk < first_block || blk > last_block ||
 		    ext2fs_test_block_bitmap2(bmap, blk)) {
+			printf("group %d block bimtmap %llu\n", i, blk);
 			retval = EXT2_ET_GDESC_BAD_BLOCK_MAP;
 			goto errout;
 		}

@@ -165,6 +165,10 @@ static void print_super_flags(struct ext2_super_block * s, FILE *f)
 		fputs("is_snapshot ", f);
 		flags_found++;
 	}
+	if (s->s_flags & EXT2_FLAGS_IS_SNAPCLONE) {
+		fputs("is_snapclone ", f);
+		flags_found++;
+	}
 	if (s->s_flags & EXT2_FLAGS_FIX_SNAPSHOT) {
 		fputs("fix_snapshot ", f);
 		flags_found++;

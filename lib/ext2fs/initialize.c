@@ -96,6 +96,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	blk_t		numblocks;
 	int		rsv_gdt;
 	int		csum_flag;
+	int		has_snapshot;
 	int		bigalloc_flag;
 	int		exclude_flag;
 	int		io_flags;
@@ -448,7 +449,11 @@ ipg_retry:
 	free_blocks = 0;
 	csum_flag = EXT2_HAS_RO_COMPAT_FEATURE(fs->super,
 					       EXT4_FEATURE_RO_COMPAT_GDT_CSUM);
+	has_snapshot = EXT2_HAS_RO_COMPAT_FEATURE(fs->super,
+					EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT);
 	for (i = 0; i < fs->group_desc_count; i++) {
+		if (has_snapshot)
+			ext2fs_bg_flags_set(fs, i, EXT2_SNAP_BG_UNFIXED);
 		/*
 		 * Don't set the BLOCK_UNINIT group for the last group
 		 * because the block bitmap needs to be padded.
