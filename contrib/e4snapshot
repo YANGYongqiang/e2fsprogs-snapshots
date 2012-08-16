@@ -7,7 +7,7 @@
 #
 
 SCRIPT_NAME=$(basename $0)
-SCRIPT_VER=1.0.13-7
+SCRIPT_VER=1.0.14-7
 # script name is $FSTYPE or e4snapshot or snapshot.$FSTYPE
 FSTYPE=$(echo $SCRIPT_NAME | ( IFS=$IFS. ; read a b ; if [ $a = "snapshot" ] ; then echo $b ; else echo $a ; fi ) )
 if [ -z $FSTYPE ] || [ $FSTYPE = "e4snapshot" ] ; then
@@ -23,8 +23,37 @@ TUNEFS=tune2fs
 LSSNAP="lssnap"
 CHSNAP="chsnap"
 CHATTR=chattr
+LN="ln"
 ROOTDEV=/dev/sdc1
 ROOTMNT=/mnt/test/next4
+
+generate_file_and_md5()
+{
+	M=$1
+	n=$2
+	F=${M}M
+	NOTRUNC="conv=notrunc"
+	# uncomment the following line to run in-place write tests
+	INPLACE=$NOTRUNC
+	# uncomment the following line to run direct I/O write tests
+	DIRECT="oflag=direct"
+	TRUNCSIZE=4
+	echo Appending $F zeros to $F.1 $DIRECT
+	# append writes to new allocated blocks
+	dd if=/dev/zero bs=1M count=$M of=$F.1 $NOTRUNC oflag=append $DIRECT status=noxfer || exit 1
+	echo Writing $F random data to $n files
+	for i in $( seq 1 $n ) ; do
+		# 1st rewrite moves existing blocks to snapshot and allocates new blocks
+		fallocate -mrs -l 1M $F.$i 2>/dev/null || \
+			dd if=/dev/urandom bs=1M count=$M of=$F.$i $INPLACE status=noxfer || exit 1
+		# subsequent rewrites doesn't move blocks to snapshot
+		fallocate -mrs -l 1M $F.1 2>/dev/null || \
+			dd if=/dev/urandom bs=1M count=$M of=$F.1 $INPLACE $DIRECT status=noxfer || exit 1
+	done
+	for i in $( seq 1 $n ) ; do
+		md5sum $F.$i || exit 1
+	done > md5list
+}
 
 # override generic e2fs progs with installed e2fs.$FSTYPE progs in /sbin fodler
 # and override those with private built e2fs.$FSTYPE progs in ./bin folder
@@ -370,6 +399,37 @@ case "$1" in
 	echo snapshot $S was created
 	echo .
 	;;
+  clone)
+	if [ $1_$2 = $1_help ] ; then
+		echo "clone: take a snapclone."
+		echo "usage: $0 clone [[next-mount@]snapshot-name] (default=$FSTYPE-mount@GMT-date)"
+		exit 0
+	fi
+	s=$2
+	c=$3
+	if [ -z $s ] ; then
+		echo "snapshot is not speficied. "
+		exit 1
+	fi
+	if [ !-f $SNAPDIR/$s ] ; then
+		echo "snapshot does not exist. "
+		exit 1
+	fi
+	if [ -z $c ] ; then
+		# default snapshot-name is the <date-time> in shadow copy format
+		c=$( date -u +GMT-%Y.%m.%d-%H.%M.%S )
+		C=$ROOTMNT@$c
+	fi
+	if [ -f $SNAPDIR/$c ] ; then
+		echo "$0 clone: snapclone $C already exists!"
+		exit 1
+	fi
+	$LN $SNAPDIR/$s $SNAPDIR/$c || exit 1
+	sync
+	echo snapclone $C was created
+	echo .
+	;;
+
   delete)
 	if [ $1_$2 = $1_help ] ; then
 		echo "delete: umount a snapshot and mark it for deletion."
@@ -635,6 +695,25 @@ case "$1" in
 		done
 	fi
 	;;
+  clonetest)
+	echo Snapclone tests:
+	echo ---------------------
+	$0 clone $2 $3 || exit 1
+	c=$3
+	$CHSNAP +n $SNAPDIR/$c || exit 1
+	mkdir $SNAPMNT$c
+  	mount -t $FSTYPE -o loop $SNAPDIR/$c $SNAPMNT$c || exit 1
+	echo snapclone 1 is mounted
+	$0 fsck $c || exit 1
+	cd $SNAPMNT$c/$TESTDIR > /dev/null
+	generate_file_and_md5 $M 2
+	cd -
+	$0 lstest $2 || exit 1
+	$0 fsck $2 || exit 1
+	$0 umount $c
+	$0 lstest $c || exit 1
+	$0 fsck $c || exit 1
+	;;
   test)
 	if [ $1_$2 = $1_help ] ; then
 		echo "test: run snapshot sanity test N."
@@ -664,29 +743,8 @@ case "$1" in
 	else
 		M=1
 	fi
-	F=${M}M
 	cd $ROOTMNT/$TESTDIR > /dev/null
-	NOTRUNC="conv=notrunc"
-	# uncomment the following line to run in-place write tests
-	INPLACE=$NOTRUNC
-	# uncomment the following line to run direct I/O write tests
-	DIRECT="oflag=direct"
-	TRUNCSIZE=4
-	echo Appending $F zeros to $F.1 $DIRECT
-	# append writes to new allocated blocks
-	dd if=/dev/zero bs=1M count=$M of=$F.1 $NOTRUNC oflag=append $DIRECT status=noxfer || exit 1
-	echo Writing $F random data to $n files
-	for i in $( seq 1 $n ) ; do
-		# 1st rewrite moves existing blocks to snapshot and allocates new blocks
-		fallocate -mrs -l 1M $F.$i 2>/dev/null || \
-			dd if=/dev/urandom bs=1M count=$M of=$F.$i $INPLACE status=noxfer || exit 1
-		# subsequent rewrites doesn't move blocks to snapshot
-		fallocate -mrs -l 1M $F.1 2>/dev/null || \
-			dd if=/dev/urandom bs=1M count=$M of=$F.1 $INPLACE $DIRECT status=noxfer || exit 1
-	done
-	for i in $( seq 1 $n ) ; do
-		md5sum $F.$i || exit 1
-	done > md5list
+	generate_file_and_md5 $M $n
 	cd - > /dev/null
 	$0 lstest || exit 1
 	s=$n
